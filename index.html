@@ -225,6 +225,13 @@
   #loginLog{max-height:240px;overflow:auto;font-family:'Noto Sans JP',sans-serif;font-size:13px;background:#15151a;padding:6px 10px;margin-bottom:8px}
   #loginLog .lr{display:grid;grid-template-columns:1fr 70px 110px 80px;gap:8px;padding:3px 0;border-bottom:1px solid #26262c}
   #loginLog .lr b{color:#ffd36b} #loginLog .lr span{opacity:.7}
+  #useFilter .smallbtn.on{border-color:#ffd36b;color:#ffd36b}
+  #useStats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px}
+  @media (max-width:760px){#useStats{grid-template-columns:1fr}}
+  #useStats h4{margin:0 0 4px;color:#ffd36b;font-size:14px}
+  #useStats .ur{display:grid;grid-template-columns:110px 1fr 74px;gap:8px;align-items:center;padding:2px 0}
+  #useStats .ub{height:10px;background:#2a2a32} #useStats .ub i{display:block;height:100%;background:#d8462b}
+  #useStats .ur span{text-align:right;opacity:.85}
   /* 設定画面 */
   #setPanel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:20}
   #setPanel.open{display:flex}
@@ -481,7 +488,11 @@
       </section>
       <section id="adminSec" style="display:none;grid-column:1/-1"><h3>ログイン履歴（管理者だけに表示）</h3>
         <div id="loginLog"></div>
-        <button class="smallbtn" id="logReload">更新</button> <button class="smallbtn danger" id="logClear">履歴を消す</button> <button class="smallbtn" id="adminOff">このブラウザの管理者を解除</button>
+        <button class="smallbtn" id="logReload">更新</button> <button class="smallbtn danger" id="logClear">履歴を消す</button>
+        <h3 style="margin-top:14px">使用率（友だちが遊んだ試合）</h3>
+        <div class="spnote">キャラ＝その試合で使ったレジェンド。武器＝その試合で 10 秒以上持っていた武器（1 試合で複数）。</div>
+        <div id="useFilter"><button class="smallbtn on" data-m="all">全部</button> <button class="smallbtn" data-m="casual">カジュアル</button> <button class="smallbtn" data-m="ranked">ランク</button> <button class="smallbtn" data-m="algs">ALGS</button></div>
+        <div id="useStats"></div> <button class="smallbtn" id="adminOff">このブラウザの管理者を解除</button>
       </section>
     </div>
   </div>
@@ -3869,6 +3880,8 @@ const ALGS_PTS = [12, 9, 7, 5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0];
 const ALGS_MP = 50;   // マッチポイント形式のしきい値
 const ALGS_GAMES = 6; // グループステージの試合数
 const ALGS_COMP = ['alter', 'gibraltar', 'newcastle'];
+// このゲームの環境（データで一番強いもの）
+const META_LEGEND = 'gibraltar', META_WEAPON = 'havoc';
 // 最終リングの縮小までに、これくらいの部隊が残るようにする（リング段階ごとの目安）
 const ALGS_KEEP = [20, 20, 20, 18, 17, 20];   // 中盤に少し減り、最終リングでは最後の収縮が始まるまで全部隊が持ち場を守る
 const ALGS_NAMES = ['Crimson Vanguard', 'Nova Rift', 'Iron Howl', 'Zenith Gaming', 'Black Lotus', 'Solar Flare', 'Kitsune GG', 'Polaris',
@@ -3916,8 +3929,9 @@ function algsPlayerOut() {
 }
 function algsGameEnd() {
   if (M.over) return;
-  M.over = true; M.ff = 0;
   for (const sq of squads) if (!sq.eliminated) sq.place = 1;
+  recordMatch(squads[0].place);
+  M.over = true; M.ff = 0;
   const before = AL.teams.map(t => t.pts), last = [];
   squads.forEach((sq, i) => {
     const t = AL.teams[i], pp = ALGS_PTS[sq.place - 1] || 0;
@@ -5127,7 +5141,7 @@ function findLoot(b, r) {
   return best;
 }
 function botWants(b, it) {
-  if (it.kind === 'weapon') return b.slots.some(s => s.id === 'fists');
+  if (it.kind === 'weapon') return b.slots.some(s => s.id === 'fists') || (it.id === META_WEAPON && !b.slots.some(s => s.id === META_WEAPON));
   if (it.kind === 'ammo') return b.slots.some(s => ammoType(WDEFS[s.id]) === it.type) && b.res[it.type] < 180;
   // アーマーは「今より多くシールドが手に入る」なら着替える（デスボックスのアーマーで回復するのも本家の定番）
   if (it.kind === 'armor') { const val = it.sh ?? SHIELD_CAP[it.level]; return val > b.sh + 25 || (it.level > b.armor && val >= b.sh); }
@@ -5139,7 +5153,13 @@ function botWants(b, it) {
 function botPick(b, it) {
   if (!it.alive) return;
   if (it.kind === 'weapon') {
-    const i = b.slots.findIndex(s => s.id === 'fists'); if (i < 0) return;
+    let i = b.slots.findIndex(s => s.id === 'fists');
+    if (i < 0 && it.id === META_WEAPON && !b.slots.some(s => s.id === META_WEAPON)) {
+      // 環境武器は持っている武器と持ち替える（持っていない方の武器を置いていく）
+      i = b.cur === 0 ? 1 : 0; const old = b.slots[i];
+      spawnItem('weapon', { id: old.id, ammo: old.ammo }, b.pos.clone()); b.metaSwaps = (b.metaSwaps || 0) + 1;
+    }
+    if (i < 0) return;
     b.slots[i] = { id: it.id, ammo: it.ammo || 0 }; b.cur = i; const s = b.slots[i];
     if (s.ammo === 0) { const t = ammoType(WDEFS[it.id]); const got = t ? Math.min(WDEFS[it.id].mag, b.res[t]) : 0; if (t) b.res[t] -= got; s.ammo = got; }
   } else if (it.kind === 'ammo') b.res[it.type] += it.amount;
@@ -6094,6 +6114,7 @@ function addFeed(killer, weapon, victim, kind, victimTeam) {
 }
 function gameOver(win, place) {
   if (M.over) return;
+  recordMatch(place);
   M.over = true;
   const r = $('#result');
   r.querySelector('h1').textContent = win ? 'チャンピオン' : '部隊全滅';
@@ -6131,9 +6152,12 @@ function startMatch(kind = 'casual') {
     if (t === 0) sq.members.push(PLAYER_AGENT);
     // ALGS は全部隊オルター／ジブラルタル／ニューキャッスル（自分の部隊は自分と被らない 2 人）
     const comp = kind === 'algs' ? ALGS_COMP.filter(id => !used.has(id)) : null;
+    // 環境キャラ：カジュアルとランクでは、どの部隊にも 1 人は入る（自分の部隊は、自分が選んでいなければ味方が使う）
+    const meta = (kind === 'casual' || kind === 'ranked') && !used.has(META_LEGEND) ? [META_LEGEND] : [];
     while (sq.members.length < 3) {
       let id;
       if (comp) id = comp.shift();
+      else if (meta.length) id = meta.shift();
       else { do id = pick(ids); while (used.has(id)); }
       used.add(id);
       // スマホ（タッチ操作）のときは、敵の腕前を PC より少し下げる
@@ -6364,6 +6388,23 @@ const adminPass = () => { try { return localStorage.getItem('apexfr_adminpass') 
 const supaHeaders = path => Object.assign({ apikey: SUPA_KEY, 'Content-Type': 'application/json' }, path.includes('/rpc/') ? {} : { Prefer: 'return=minimal' }, SUPA_KEY.startsWith('sb_') ? {} : { Authorization: 'Bearer ' + SUPA_KEY });
 const supa = (path, body) => fetch(SUPA_URL + path, { method: 'POST', headers: supaHeaders(path), body: JSON.stringify(body) })
   .then(r => r.text().then(t => r.ok ? (t ? JSON.parse(t) : null) : Promise.reject(new Error(t || r.status))));
+// 試合ごとに、使ったキャラ・持っていた武器（10 秒以上）・順位・キルを記録する
+function trackWeaponTime(dt) {
+  if (MODE !== 'match' || M.over || P.dead || P.inShip) return;
+  const id = slots[cur] && slots[cur].id; if (!id || id === 'fists') return;
+  (M.wpnTime || (M.wpnTime = {}))[id] = (M.wpnTime[id] || 0) + dt;
+}
+function recordMatch(place) {
+  if (MODE !== 'match' || M.recorded || !PLAYER_NAME) return;
+  M.recorded = true;
+  const weapons = Object.entries(M.wpnTime || {}).filter(([, t]) => t >= 10).sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const row = { name: PLAYER_NAME, mode: M.kind, legend: settings.legend, weapons, kills: M.kills || 0, place: place ?? null, device: TOUCH ? 'スマホ' : 'PC' };
+  if (SUPA_URL && SUPA_KEY && location.protocol.startsWith('http'))
+    fetch(SUPA_URL + '/rest/v1/matchlog', { method: 'POST', keepalive: true, headers: supaHeaders('/rest/v1/matchlog'), body: JSON.stringify(row) }).catch(() => {});
+  return row;
+}
+// 試合の途中でページを閉じたときも記録する（順位なし）
+addEventListener('pagehide', () => { if (MODE === 'match' && !M.over) recordMatch(null); });
 function recordLogin(name) {
   if (!name) return;
   const device = TOUCH ? 'スマホ' : 'PC';
@@ -6388,7 +6429,29 @@ function renderLoginLog() {
   supa('/rest/v1/rpc/get_loginlog', { pass: adminPass() }).then(rows => draw(rows || []))
     .catch(() => { el.innerHTML = '<div style="color:#ff8a70">読み込めませんでした（合言葉が違うか、通信できません）</div>'; });
 }
-function showAdmin() { const on = !!adminPass(); $('#adminSec').style.display = on ? 'block' : 'none'; if (on) renderLoginLog(); }
+// 使用率：get_matchlog（合言葉が必要）で試合の記録をもらい、ここで集計する
+let useMode = 'all', useRows = null;
+function renderUseStats(rows) {
+  if (rows) useRows = rows;
+  const el = $('#useStats'); if (!el) return;
+  if (!useRows) { el.innerHTML = '<div style="opacity:.5">読み込み中…</div>'; return; }
+  const list = useMode === 'all' ? useRows : useRows.filter(r => r.mode === useMode), n = list.length;
+  if (!n) { el.innerHTML = '<div style="opacity:.5">まだ記録がありません</div>'; return; }
+  const count = (key, many) => { const c = {}; for (const r of list) for (const k of many ? (r[key] || []) : [r[key]]) if (k) c[k] = (c[k] || 0) + 1; return Object.entries(c).sort((a, b) => b[1] - a[1]); };
+  const table = (title, ent, nameOf) => `<div><h4>${title}（${n} 試合）</h4>` + ent.map(([k, v]) => { const pc = v / n * 100;
+    return `<div class="ur"><b>${nameOf(k)}</b><div class="ub"><i style="width:${Math.min(100, pc)}%"></i></div><span>${pc.toFixed(1)}%（${v}）</span></div>`; }).join('') + '</div>';
+  el.innerHTML = table('キャラの使用率', count('legend', false), k => (LEG[k] && LEG[k].name) || k)
+    + table('武器の使用率', count('weapons', true), k => (WDEFS[k] && WDEFS[k].name) || k);
+}
+function loadUseStats() {
+  if (!SUPA_URL || !SUPA_KEY || !adminPass()) return;
+  useRows = null; renderUseStats();
+  supa('/rest/v1/rpc/get_matchlog', { pass: adminPass() }).then(rows => renderUseStats(rows || []))
+    .catch(e => { $('#useStats').innerHTML = '<div style="color:#ff8a70">読み込めませんでした（Supabase に matchlog の表を作ったか確認してください）</div>'; });
+}
+$('#useFilter').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; useMode = b.dataset.m;
+  for (const x of $('#useFilter').children) x.classList.toggle('on', x === b); renderUseStats(); });
+function showAdmin() { const on = !!adminPass(); $('#adminSec').style.display = on ? 'block' : 'none'; if (on) { renderLoginLog(); loadUseStats(); } }
 function updateWhoami() { $('#whoami').innerHTML = PLAYER_NAME ? `プレイヤー：<b>${PLAYER_NAME.replace(/[<>&]/g, '')}</b>` : ''; }
 function askName() { $('#nameInp').value = PLAYER_NAME; $('#namePop').classList.add('open'); setTimeout(() => $('#nameInp').focus(), 50); }
 $('#nameOk').addEventListener('click', () => {
@@ -6408,7 +6471,7 @@ $('#adminOk').addEventListener('click', () => {
     .catch(() => toast('合言葉が違います'));
 });
 $('#adminCode').addEventListener('keydown', e => e.stopPropagation());
-$('#logReload').addEventListener('click', renderLoginLog);
+$('#logReload').addEventListener('click', () => { renderLoginLog(); loadUseStats(); });
 $('#logClear').addEventListener('click', () => { if (!confirm('ログイン履歴を全部消しますか？')) return; try { localStorage.setItem('apexfr_loginlog', '[]'); } catch (e) {}
   if (SUPA_URL && SUPA_KEY) supa('/rest/v1/rpc/clear_loginlog', { pass: adminPass() }).then(renderLoginLog).catch(() => toast('消せませんでした')); else renderLoginLog(); });
 $('#adminOff').addEventListener('click', () => { try { localStorage.removeItem('apexfr_adminpass'); } catch (e) {} showAdmin(); });
@@ -6824,7 +6887,7 @@ function frame() {
   const dt = Math.min(0.05, now - last); last = now;
 
   shotSounds = 0;
-  pollPad(dt); updateTouch(dt);
+  pollPad(dt); updateTouch(dt); trackWeaponTime(dt);
   // マッチは裏で進み続ける（Esc でメニューを開いても止まらない）
   const running = locked || (MODE === 'match' && !M.over);
   if (locked) {
