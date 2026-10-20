@@ -192,7 +192,7 @@
   #ringInfo{position:absolute;left:16px;top:244px;width:220px;font-size:13px;font-weight:700;letter-spacing:1px;text-align:center;
     background:rgba(0,0,0,.55);padding:3px 0;font-family:'Rajdhani','Noto Sans JP',sans-serif}
   #ringInfo b{color:#ffb36b}
-  #feed{position:absolute;top:58px;right:18px;width:380px;font-size:14px;font-family:'Noto Sans JP',sans-serif;text-align:right}
+  #feed{position:absolute;top:58px;right:18px;width:340px;font-size:12px;font-family:'Noto Sans JP',sans-serif;text-align:right}
   #compass{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:560px;height:42px}
   #notify{position:absolute;left:50%;top:calc(50% + 90px);transform:translateX(-50%);text-align:center;font-weight:700;opacity:0;transition:opacity .3s;
     font-family:'Rajdhani','Noto Sans JP',sans-serif;text-shadow:0 2px 4px #000;white-space:nowrap}
@@ -283,7 +283,8 @@
   body.touch #pl{transform:scale(.7);transform-origin:bottom left;left:12px;bottom:12px}
   body.touch #squad{transform:scale(.8);transform-origin:bottom left;bottom:95px}
   body.touch #mmap{width:150px;height:150px}
-  body.touch #feed{top:56px;left:172px;right:auto;width:330px;text-align:left;transform:scale(.8);transform-origin:top left}
+  body.touch #feed{top:56px;left:172px;right:auto;width:330px;text-align:left;transform:scale(.7);transform-origin:top left}
+  body.touch #feed div{float:left}
   body.touch .startrow.four{grid-template-columns:repeat(3,1fr)}
   body.touch #startAlgs{display:none}
   #healWheel{position:fixed;left:50%;top:50%;width:0;height:0;display:none;z-index:4;font-family:'Noto Sans JP',sans-serif}
@@ -312,7 +313,7 @@
   #boxui button{background:rgba(255,255,255,.07);color:#fff;border:0;border-left:4px solid #888;padding:8px;text-align:left;cursor:pointer;font-family:inherit;font-size:13px}
   #boxui button:hover{background:rgba(255,255,255,.18)}
   #boxui .close{margin-top:12px;width:100%;background:#d8462b;border:0;text-align:center;font-size:15px;padding:10px}
-  #feed div{background:rgba(0,0,0,.5);margin-bottom:3px;padding:2px 8px;display:inline-block;float:right;clear:both}
+  #feed div{background:rgba(0,0,0,.45);margin-bottom:2px;padding:1px 6px;display:inline-block;float:right;clear:both}
   #feed .me{color:#ffd36b}
   #feed .mate{color:#7fc8ff}
   #squad{position:absolute;left:28px;bottom:120px;width:200px;font-size:14px;font-family:'Noto Sans JP',sans-serif}
@@ -5110,7 +5111,14 @@ function checkSquad(team) {
   sq.eliminated = true;
   for (const m of sq.members) if (!m.dead) {
     if (m.isPlayer) playerDie(null, true);
-    else { creditKill(m.knockedBy, m.team); m.dead = true; m.downed = false; m.g.visible = false; dropInventory(m.pos, botInv(m), m.name); if (M.spectate === m) pickSpectate(); }
+    else {
+      creditKill(m.knockedBy, m.team);
+      // 部隊全滅でまとめて倒れた敵も、ダウンさせた人の 1 キルになる（本家と同じ。3 人ダウン → 全滅で 3 キル）
+      if (m.knockedBy === PLAYER_AGENT) { M.kills++; sKill(); notify('キル', m.name, '#ff5a3c'); }
+      else if (M.t - (m.plDmgT ?? -99) < 15 && m.team !== 0) M.assists++;
+      if (m.knockedBy) addFeed(nameOf(m.knockedBy), '', m.name, 'kill', m.team);
+      m.dead = true; m.downed = false; m.g.visible = false; dropInventory(m.pos, botInv(m), m.name); if (M.spectate === m) pickSpectate();
+    }
   }
   M.squadsLeft--; sq.place = M.squadsLeft + 1;
   addFeed('', '', team === 0 ? 'あなたの部隊が全滅' : `${sq.name} 全滅`, 'squad', team);
@@ -6110,7 +6118,7 @@ function addFeed(killer, weapon, victim, kind, victimTeam) {
   el.className = mine ? 'me' : victimTeam === 0 ? 'mate' : '';
   el.textContent = kind === 'squad' ? victim : `${killer} ${weapon ? '[' + weapon + '] ' : ''}${kind === 'knock' ? '⇢ ダウン ' : '✕ '}${victim}`;
   $('#feed').prepend(el); M.feed.push({ el, t: nowS() });
-  while ($('#feed').children.length > 6) $('#feed').lastChild.remove();
+  while ($('#feed').children.length > 2) $('#feed').lastChild.remove();   // キルログは最新 2 行だけ
 }
 function gameOver(win, place) {
   if (M.over) return;
