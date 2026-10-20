@@ -458,10 +458,7 @@
         <label>タッチ感度（スマホ）<input id="s_touch" type="number" step="0.1" min="0.2" max="4"></label>
       </section>
       <section><h3>エイムアシスト</h3>
-        <label>エイムアシスト（パッド・スマホ）<input id="s_aa" type="checkbox"></label>
-        <label>強さ：PC のパッド <span class="rv"><input id="s_aaPc" type="range" min="0" max="1" step="0.05"><b id="v_aaPc"></b></span></label>
-        <label>強さ：スマホ <span class="rv"><input id="s_aaTouch" type="range" min="0" max="1" step="0.05"><b id="v_aaTouch"></b></span></label>
-        <div class="spnote">マウスにはかかりません（本家と同じ）。0.4 がこれまでの強さで、スマホは初期値 0.8（PC の 2 倍）です。</div>
+        <div class="spnote">強さは全員同じで変えられません（公平にするため）。PC のパッドは 0.4、スマホは 0.8。マウスにはかかりません。</div>
       </section>
       <section><h3>画面</h3>
         <label>FOV（Apex と同じ数値）<input id="s_fov" type="number" step="1" min="70" max="120"></label>
@@ -532,15 +529,16 @@ const TOUCH_DEV = (matchMedia('(pointer: coarse)').matches || navigator.maxTouch
 let TOUCH = settings.inputMode === 'touch' || (settings.inputMode === 'auto' && TOUCH_DEV);
 // 画質：高（PC）／中／低（スマホ）。自動ならスマホは低。読み込み時に決まる（変えたら再読み込み）
 const QUALITY = settings.quality === 'auto' || !settings.quality ? (TOUCH ? 'low' : 'high') : settings.quality;
-const aaStrength = () => settings.aimAssist === false ? 0 : TOUCH ? (settings.aaTouch ?? 0.8) : (settings.aaPc ?? 0.4);
+// エイムアシストの強さは固定（設定では変えられない）
+const AA_PC = 0.4, AA_TOUCH = 0.8;
+const aaStrength = () => TOUCH ? AA_TOUCH : AA_PC;
 function fillForm() {
   $('#s_sens').value = settings.sens; $('#s_ads').value = settings.ads; $('#s_fov').value = settings.fov;
   $('#s_fast').checked = settings.fastCd; $('#s_adst').checked = settings.adsToggle;
   $('#s_fs').checked = settings.fullscreen; $('#s_vol').value = settings.volume;
-  $('#s_pad').value = settings.padSens ?? 4; $('#s_aa').checked = settings.aimAssist !== false; $('#s_dz').value = settings.padDz ?? 0;
-  $('#s_aaPc').value = settings.aaPc ?? 0.4; $('#s_aaTouch').value = settings.aaTouch ?? 0.8; $('#s_touch').value = settings.touchSens ?? 1;
+  $('#s_pad').value = settings.padSens ?? 4; $('#s_dz').value = settings.padDz ?? 0;
+  $('#s_touch').value = settings.touchSens ?? 1;
   $('#s_input').value = settings.inputMode || 'auto'; $('#s_quality').value = settings.quality || 'auto';
-  $('#v_aaPc').textContent = (+(settings.aaPc ?? 0.4)).toFixed(2); $('#v_aaTouch').textContent = (+(settings.aaTouch ?? 0.8)).toFixed(2);
 }
 function readForm() {
   settings.sens = clamp(+$('#s_sens').value || 2, 0.1, 20);
@@ -548,9 +546,8 @@ function readForm() {
   settings.fov = clamp(+$('#s_fov').value || 104, 70, 120);
   settings.fastCd = $('#s_fast').checked; settings.adsToggle = $('#s_adst').checked;
   settings.fullscreen = $('#s_fs').checked; settings.volume = +$('#s_vol').value;
-  settings.padSens = clamp(+$('#s_pad').value || 4, 1, 10); settings.aimAssist = $('#s_aa').checked; settings.padDz = clamp(+$('#s_dz').value || 0, 0, 0.3);
-  settings.aaPc = clamp(+$('#s_aaPc').value, 0, 1); settings.aaTouch = clamp(+$('#s_aaTouch').value, 0, 1); settings.touchSens = clamp(+$('#s_touch').value || 1, 0.2, 4);
-  $('#v_aaPc').textContent = settings.aaPc.toFixed(2); $('#v_aaTouch').textContent = settings.aaTouch.toFixed(2);
+  settings.padSens = clamp(+$('#s_pad').value || 4, 1, 10); settings.padDz = clamp(+$('#s_dz').value || 0, 0, 0.3);
+  settings.touchSens = clamp(+$('#s_touch').value || 1, 0.2, 4);
   const im = $('#s_input').value, q = $('#s_quality').value;
   if (im !== settings.inputMode) { settings.inputMode = im; setInputMode(); }
   if (q !== settings.quality) { settings.quality = q; $('#s_qnote').style.display = 'block'; }
