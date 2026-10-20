@@ -6173,7 +6173,8 @@ function startMatch(kind = 'casual') {
       else { do id = pick(ids); while (used.has(id)); }
       used.add(id);
       // スマホ（タッチ操作）のときは、敵の腕前を下げる（PC のカジュアルをマスター帯にする前くらい）
-      const b = makeBot(t, id); b.skill = rand(skill[0], skill[1]) * (TOUCH ? 0.65 : 1); sq.members.push(b); bots.push(b);
+      // 味方は、モードやランク・スマホに関係なく、いつもプレデター級
+      const b = makeBot(t, id); b.skill = t === 0 ? rand(1.2, 1.3) : rand(skill[0], skill[1]) * (TOUCH ? 0.65 : 1); sq.members.push(b); bots.push(b);
     }
     squads.push(sq);
   }
