@@ -265,7 +265,11 @@
   body.touch{touch-action:none;-webkit-user-select:none}
   body.touch #c{touch-action:none}
   /* スマホでは画面の表示をボタンとかぶらない位置へ */
-  body.touch #wp{top:52px;bottom:auto;right:16px;transform:scale(.62);transform-origin:top right}
+  body.touch #wp{top:84px;bottom:auto;right:16px;transform:scale(.62);transform-origin:top right}
+  /* スマホ：上のボタンと重ならないように、残り部隊・残り・キル・ダメージを小さく 2 段に */
+  body.touch #mtop{top:8px;right:12px;max-width:min(240px,calc(100vw - 460px));flex-wrap:wrap;justify-content:flex-end;gap:3px}
+  body.touch #mtop .box{padding:1px 7px;font-size:10px;letter-spacing:0;gap:5px}
+  body.touch #mtop .box b{font-size:15px}
   body.touch #abil, body.touch #inv, body.touch #inv.match-only, body.match.touch #inv.match-only{display:none !important}
   body.touch #ringInfo{left:12px;top:168px;transform:scale(.8);transform-origin:top left}
   body.touch #squad{display:none}
