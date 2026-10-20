@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="APEX">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png">
 <title>APEX Firing Range</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
@@ -235,20 +238,23 @@
   #setPanel .rv{display:flex;align-items:center;gap:8px} #setPanel .rv b{min-width:34px;text-align:right;color:#ffd36b}
   .spnote{font-size:12px;opacity:.65;font-family:'Noto Sans JP',sans-serif;line-height:1.5;margin:2px 0 6px}
   /* スマホ：画面のボタン */
-  #touchUI{position:fixed;inset:0;display:none;z-index:6;pointer-events:none}
+  #touchUI{position:fixed;top:env(safe-area-inset-top);bottom:env(safe-area-inset-bottom);left:env(safe-area-inset-left);right:env(safe-area-inset-right);display:none;z-index:9;pointer-events:none}
+  #esp{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;display:none}
+  body.touch.playing #esp{display:block}
+  #pwaHint{display:none;font-family:'Noto Sans JP',sans-serif;font-size:13px;line-height:1.6;background:#2a2116;border-left:4px solid #ffd36b;padding:8px 12px;margin:0 0 10px}
   body.touch.playing #touchUI{display:block}
-  #touchUI .tb{position:absolute;pointer-events:auto;width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.45);
-    background:rgba(20,22,28,.42);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;touch-action:none;padding:0;
+  #touchUI .tb{position:absolute;pointer-events:auto;width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.3);
+    background:rgba(255,255,255,.1);color:rgba(255,255,255,.9);font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;touch-action:none;padding:0;
     -webkit-tap-highlight-color:transparent;text-shadow:0 1px 2px #000}
   #touchUI .tb.big{width:94px;height:94px;font-size:17px}
   #touchUI .tb.sm{width:auto;min-width:46px;height:40px;border-radius:8px;padding:0 10px}
-  #touchUI .tb.fire{background:rgba(216,70,43,.45);border-color:rgba(255,160,140,.7)}
-  #touchUI .tb.on,#touchUI .tb:active{background:rgba(255,211,107,.55);color:#111}
+  #touchUI .tb.fire{background:rgba(216,70,43,.2);border-color:rgba(255,140,120,.55)}
+  #touchUI .tb.on,#touchUI .tb:active{background:rgba(255,211,107,.4);color:#111}
   #touchUI .tb.ab i{position:absolute;left:0;right:0;bottom:6px;font-style:normal;font-size:12px;color:#ffd36b}
   #touchUI .tb.ab.ready{border-color:#ffd36b;box-shadow:0 0 10px rgba(255,211,107,.6)}
-  #tStick{position:absolute;width:130px;height:130px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);
+  #tStick{position:absolute;width:130px;height:130px;border-radius:50%;border:2px solid rgba(255,255,255,.22);background:rgba(255,255,255,.04);
     left:36px;bottom:36px;pointer-events:none}
-  #tStick .knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,255,255,.35)}
+  #tStick .knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,255,255,.25)}
   body.touch{touch-action:none;-webkit-user-select:none}
   body.touch #c{touch-action:none}
   /* スマホでは画面の表示をボタンとかぶらない位置へ */
@@ -270,7 +276,7 @@
   body.touch #pl{transform:scale(.7);transform-origin:bottom left;left:12px;bottom:12px}
   body.touch #squad{transform:scale(.8);transform-origin:bottom left;bottom:95px}
   body.touch #mmap{width:150px;height:150px}
-  body.touch #feed{top:150px}
+  body.touch #feed{top:56px;left:172px;right:auto;width:330px;text-align:left;transform:scale(.8);transform-origin:top left}
   body.touch .startrow.four{grid-template-columns:repeat(3,1fr)}
   body.touch #startAlgs{display:none}
   #healWheel{position:fixed;left:50%;top:50%;width:0;height:0;display:none;z-index:4;font-family:'Noto Sans JP',sans-serif}
@@ -383,6 +389,7 @@
     <h1>APEX <span>LEGENDS</span></h1>
     <div class="sub">非公式ファンメイド — レジェンドを選んで、射撃場かマッチを始める</div>
     <div id="whoami"></div>
+    <div id="pwaHint"></div>
     <div id="legendPick">
       <h2>レジェンド</h2>
       <div id="legends"></div>
@@ -479,6 +486,7 @@
     </div>
   </div>
 </div>
+<canvas id="esp"></canvas>
 <div id="touchUI">
   <div id="tStick"><div class="knob"></div></div>
   <button class="tb sm" id="tbMenu" style="left:172px;top:10px">≡</button>
@@ -6128,7 +6136,8 @@ function startMatch(kind = 'casual') {
       if (comp) id = comp.shift();
       else { do id = pick(ids); while (used.has(id)); }
       used.add(id);
-      const b = makeBot(t, id); b.skill = rand(skill[0], skill[1]); sq.members.push(b); bots.push(b);
+      // スマホ（タッチ操作）のときは、敵の腕前を PC より少し下げる
+      const b = makeBot(t, id); b.skill = rand(skill[0], skill[1]) * (TOUCH ? 0.88 : 1); sq.members.push(b); bots.push(b);
     }
     squads.push(sq);
   }
@@ -6308,9 +6317,24 @@ function startGame(mode) {
     $('#modeRow').style.display = 'none'; $('#modeInfo').style.display = 'none'; $('#resumeRow').style.display = 'grid';
     if (mode !== 'range') $('#legendPick').style.display = 'none';
   }
-  if (settings.fullscreen && !document.fullscreenElement && document.documentElement.requestFullscreen)
-    document.documentElement.requestFullscreen().catch(() => {});
+  goFullscreen();
   if (PAD.byPad || TOUCH) softLock(true); else requestLock();
+}
+// スマホは、タップしたときに全画面にしてブラウザの検索バーを消す（Android）。iPhone はホーム画面から開くとバーが出ない
+function goFullscreen() {
+  if (!(settings.fullscreen || TOUCH) || document.fullscreenElement || document.webkitFullscreenElement) return;
+  const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (req) { try { const pr = req.call(el, { navigationUI: 'hide' }); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {} }
+  if (TOUCH && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+}
+const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IS_STANDALONE = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+function showPwaHint() {
+  const el = $('#pwaHint'); if (!TOUCH || IS_STANDALONE) { el.style.display = 'none'; return; }
+  el.innerHTML = IS_IOS
+    ? '📱 <b>iPhone で検索バーを消すには</b>：Safari の下の <b>共有ボタン（□↑）</b> → <b>「ホーム画面に追加」</b> → ホーム画面にできた <b>APEX</b> から開いてください。アプリのように全画面になります。'
+    : '📱 ゲームを始めると全画面になって検索バーが消えます。消えないときは、ブラウザのメニュー（︙）→ <b>「ホーム画面に追加」</b>（または「アプリをインストール」）で追加したアイコンから開いてください。';
+  el.style.display = 'block';
 }
 function startRange() {
   MODE = 'range';
@@ -6336,14 +6360,16 @@ const SUPA_KEY = 'sb_publishable_C-QnM3rc9yzd4sWdMwZA8A_n8Wrdr5_';   // 公開�
 let PLAYER_NAME = (() => { try { return localStorage.getItem('apexfr_name') || ''; } catch (e) { return ''; } })();
 const adminPass = () => { try { return localStorage.getItem('apexfr_adminpass') || ''; } catch (e) { return ''; } };
 // 新しい形式のキー（sb_publishable_）は apikey だけ、昔の形式（eyJ…）は Authorization にも入れる
-const supaHeaders = () => Object.assign({ apikey: SUPA_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, SUPA_KEY.startsWith('sb_') ? {} : { Authorization: 'Bearer ' + SUPA_KEY });
-const supa = (path, body) => fetch(SUPA_URL + path, { method: 'POST', headers: supaHeaders(), body: JSON.stringify(body) })
-  .then(r => r.ok ? (r.status === 204 ? null : r.json()) : r.text().then(t => Promise.reject(new Error(t || r.status))));
+// 書き足しは返事なし（return=minimal）、合言葉の関数は結果を返してもらう
+const supaHeaders = path => Object.assign({ apikey: SUPA_KEY, 'Content-Type': 'application/json' }, path.includes('/rpc/') ? {} : { Prefer: 'return=minimal' }, SUPA_KEY.startsWith('sb_') ? {} : { Authorization: 'Bearer ' + SUPA_KEY });
+const supa = (path, body) => fetch(SUPA_URL + path, { method: 'POST', headers: supaHeaders(path), body: JSON.stringify(body) })
+  .then(r => r.text().then(t => r.ok ? (t ? JSON.parse(t) : null) : Promise.reject(new Error(t || r.status))));
 function recordLogin(name) {
   if (!name) return;
   const device = TOUCH ? 'スマホ' : 'PC';
   try { const l = JSON.parse(localStorage.getItem('apexfr_loginlog') || '[]'); l.push({ name, device, time: Date.now() }); if (l.length > 200) l.splice(0, l.length - 200); localStorage.setItem('apexfr_loginlog', JSON.stringify(l)); } catch (e) {}
-  if (SUPA_URL && SUPA_KEY) supa('/rest/v1/loginlog', { name, device }).catch(e => console.warn('ログイン記録に失敗', e));
+  // 手元のファイル（file://）で開いたときは記録しない。公開した URL で開いたときだけ記録する
+  if (SUPA_URL && SUPA_KEY && location.protocol.startsWith('http')) supa('/rest/v1/loginlog', { name, device }).catch(e => console.warn('ログイン記録に失敗', e));
 }
 function renderLoginLog() {
   const el = $('#loginLog'); if (!el) return;
@@ -6392,7 +6418,7 @@ if (PLAYER_NAME) recordLogin(PLAYER_NAME); else askName();
 function setInputMode() {
   TOUCH = settings.inputMode === 'touch' || ((settings.inputMode || 'auto') === 'auto' && TOUCH_DEV);
   document.body.classList.toggle('touch', TOUCH);
-  renderModeInfo();
+  renderModeInfo(); showPwaHint();
 }
 setInputMode();
 $('#openSettings').addEventListener('click', () => { fillForm(); showAdmin(); $('#setPanel').classList.add('open'); });
@@ -6568,8 +6594,39 @@ function touchLook(dxPx, dyPx) {
   TCH.lookMag = Math.min(1, TCH.lookMag + Math.hypot(dxPx, dyPx) / 40);
 }
 TCH.slow = 1;
+// 体の足元・胴・頭の 3 か所がすべて見えている敵だけを、赤い枠で囲む（スマホだけ）
+const espCv = $('#esp'), espG = espCv.getContext('2d'), espV = new V3(), espP = new V3();
+let espDrawn = false;
+function updateEsp(now) {
+  const on = TOUCH && MODE === 'match' && locked && !M.ui && !P.dead && !P.inShip;
+  if (!on) { if (espDrawn) { espG.clearRect(0, 0, espCv.width, espCv.height); espDrawn = false; } return; }
+  if (espCv.width !== innerWidth || espCv.height !== innerHeight) { espCv.width = innerWidth; espCv.height = innerHeight; }
+  espG.clearRect(0, 0, espCv.width, espCv.height); espDrawn = true;
+  camera.updateMatrixWorld(); camera.getWorldDirection(espV);
+  espG.lineWidth = 2; espG.strokeStyle = 'rgba(255,40,40,.95)'; espG.shadowColor = 'rgba(255,0,0,.7)'; espG.shadowBlur = 6;
+  for (const b of enemyCache) {
+    if (b.dead || b.phaseUntil > M.t) continue;
+    const dx = b.pos.x - camera.position.x, dz = b.pos.z - camera.position.z, d = Math.hypot(dx, dz);
+    if (d > 150 || d < 1.5 || dx * espV.x + dz * espV.z < 0) continue;     // 遠すぎる・後ろにいる
+    const h = b.downed ? 0.7 : b.crouchUntil > M.t ? 1.3 : 1.8;
+    if (now > (b.espT || 0)) {
+      b.espT = now + 0.12 + Math.random() * 0.06;
+      // 足元（少し上）・胴・頭の 3 点まで、壁や地形にさえぎられずに見えるか（相手の手前 0.3m までを調べる）
+      b.espVis = [0.45, h * 0.55, h - 0.1].every(y => { espP.set(b.pos.x, b.pos.y + y, b.pos.z).sub(camera.position); const l = espP.length(); espP.multiplyScalar(1 / l);
+        if (castWorld(camera.position, espP, l - 0.3)) return false; espP.multiplyScalar(l).add(camera.position); return !SMOKES.some(sm => sm.until > now && segHitsSphere(camera.position, espP, sm.p, sm.r)); });
+    }
+    if (!b.espVis) continue;
+    const top = espP.set(b.pos.x, b.pos.y + h + 0.08, b.pos.z).project(camera), ty = (1 - top.y) / 2 * innerHeight, tx = (top.x + 1) / 2 * innerWidth;
+    const bot = espP.set(b.pos.x, b.pos.y - 0.05, b.pos.z).project(camera), by = (1 - bot.y) / 2 * innerHeight;
+    if (top.z > 1 || bot.z > 1) continue;
+    const hh = by - ty, ww = Math.max(8, hh * (b.downed ? 1.3 : 0.48));
+    espG.strokeRect(tx - ww / 2, ty, ww, hh);
+  }
+  espG.shadowBlur = 0;
+}
 function updateTouch(dt) {
   if (!TOUCH) return;
+  updateEsp(nowS());
   document.body.classList.toggle('playing', !!(locked && MODE && !M.ui && !M.over));
   if (!locked) { TCH.mx = TCH.my = 0; return; }
   // スマホのエイムアシスト（初期値 0.8）
@@ -6619,6 +6676,7 @@ function updateTouch(dt) {
   // 画面（ボタン以外）：左半分は移動スティック、右側は視点
   const c = document.body;
   c.addEventListener('pointerdown', e => {
+    if (TOUCH && e.pointerType !== 'mouse' && locked) goFullscreen();
     if (!TOUCH || e.pointerType === 'mouse' || !locked || M.ui || e.target.closest('.tb') || e.target.closest('#menu, #setPanel, #invPanel, #boxui, #result')) return;
     if (e.clientX < innerWidth * 0.45 && !TCH.stick) {
       TCH.stick = { id: e.pointerId, x: e.clientX, y: e.clientY };
