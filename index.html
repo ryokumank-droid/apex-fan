@@ -6168,8 +6168,8 @@ function startMatch(kind = 'casual') {
       else if (meta.length) id = meta.shift();
       else { do id = pick(ids); while (used.has(id)); }
       used.add(id);
-      // スマホ（タッチ操作）のときは、敵の腕前を PC より少し下げる
-      const b = makeBot(t, id); b.skill = rand(skill[0], skill[1]) * (TOUCH ? 0.88 : 1); sq.members.push(b); bots.push(b);
+      // スマホ（タッチ操作）のときは、敵の腕前を下げる（PC のカジュアルをマスター帯にする前くらい）
+      const b = makeBot(t, id); b.skill = rand(skill[0], skill[1]) * (TOUCH ? 0.65 : 1); sq.members.push(b); bots.push(b);
     }
     squads.push(sq);
   }
