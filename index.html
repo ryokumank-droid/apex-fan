@@ -138,6 +138,11 @@
     clip-path:polygon(0 0,100% 0,100% 75%,75% 100%,0 100%);text-shadow:0 1px 2px #000}
   #legends button:hover{border-color:#888}
   #legends button.on{border-color:#d8462b;background:#3a1d17}
+  #legends button{position:relative}
+  #legends button .tier{position:absolute;top:3px;right:3px;margin:0}
+  .tier{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;font-style:normal;font-weight:800;font-size:11px;
+    color:#111;margin-right:5px;border-radius:2px;vertical-align:1px;font-family:sans-serif}
+  .tier.tS{background:#ff4d4d;color:#fff} .tier.tA{background:#ff9f40} .tier.tB{background:#ffd36b} .tier.tC{background:#8a8f99}
   #ldetail{background:#1d1d23;padding:10px 14px;font-family:'Noto Sans JP',sans-serif;font-size:13.5px;line-height:1.6;margin-bottom:16px}
   #ldetail b{color:#ffd36b}
   #ldetail kbd{background:#fff;color:#000;padding:0 5px;border-radius:2px;font-family:'Rajdhani',sans-serif;font-weight:700;margin-right:4px}
@@ -229,7 +234,7 @@
   #useStats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px}
   @media (max-width:760px){#useStats{grid-template-columns:1fr}}
   #useStats h4{margin:0 0 4px;color:#ffd36b;font-size:14px}
-  #useStats .ur{display:grid;grid-template-columns:120px 1fr 108px;gap:8px;align-items:center;padding:2px 0}
+  #useStats .ur{display:grid;grid-template-columns:150px 1fr 108px;gap:8px;align-items:center;padding:2px 0}
   #useStats .ub{height:10px;background:#2a2a32} #useStats .ub i{display:block;height:100%;background:#d8462b}
   #useStats .ur span{text-align:right;opacity:.85}
   /* 設定画面 */
@@ -3887,6 +3892,27 @@ const ALGS_GAMES = 6; // グループステージの試合数
 const ALGS_COMP = ['alter', 'gibraltar', 'newcastle'];
 // このゲームの環境（データで一番強いもの）
 const META_LEGEND = 'gibraltar', META_WEAPON = 'havoc';
+// ティア（S が一番強い）。キャラはスキルの強さと Bot 同士の試合の成績（順位・ダメージ）、
+// 武器は近・中・遠距離の DPS の合計で決めた。Bot は強いティアほどよく使う
+const LEG_TIER = { gibraltar: 'S', catalyst: 'S', caustic: 'S', maggie: 'S', crypto: 'S',
+  lifeline: 'A', conduit: 'A', loba: 'A', valkyrie: 'A', bloodhound: 'A', alter: 'A', wattson: 'A', seer: 'A', ballistic: 'A',
+  horizon: 'B', rampart: 'B', wraith: 'B', bangalore: 'B', ash: 'B', newcastle: 'B', fuse: 'B', revenant: 'B',
+  octane: 'C', sparrow: 'C', mirage: 'C', vantage: 'C', pathfinder: 'C' };
+const WPN_TIER = { havoc: 'S', flatline: 'S', hemlok: 'S', nemesis: 'S',
+  volt: 'A', prowler: 'A', rampage: 'A', devotion: 'A', car: 'A', lstar: 'A', r301: 'A',
+  spitfire: 'B', r99: 'B', g7: 'B', alternator: 'B', wingman: 'B', re45: 'B', kraber: 'B', longbow: 'B', repeater: 'B',
+  p2020: 'C', chargerifle: 'C', tripletake: 'C', bocek: 'C', sentinel: 'C', pk: 'C', mastiff: 'C', moz: 'C', eva8: 'C' };
+const TIER_RANK = { S: 3, A: 2, B: 1, C: 0 }, TIER_PICK = { S: 5, A: 2.5, B: 1.2, C: 0.5 };
+const legTier = id => LEG_TIER[id] || 'B', wpnTier = id => id === 'fists' ? null : WPN_TIER[id] || 'C';
+const wpnRank = id => id === 'fists' ? -1 : TIER_RANK[wpnTier(id)];
+// 強いティアのキャラほど選ばれやすい（使っていないキャラの中から）
+function pickLegendWeighted(ids, used) {
+  const c = ids.filter(id => !used.has(id)), w = c.map(id => TIER_PICK[legTier(id)]);
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < c.length; i++) if ((r -= w[i]) <= 0) return c[i];
+  return c[c.length - 1];
+}
+const tierBadge = t => t ? `<i class="tier t${t}">${t}</i>` : '';
 // 最終リングの縮小までに、これくらいの部隊が残るようにする（リング段階ごとの目安）
 const ALGS_KEEP = [20, 20, 20, 18, 17, 20];   // 中盤に少し減り、最終リングでは最後の収縮が始まるまで全部隊が持ち場を守る
 const ALGS_NAMES = ['Crimson Vanguard', 'Nova Rift', 'Iron Howl', 'Zenith Gaming', 'Black Lotus', 'Solar Flare', 'Kitsune GG', 'Polaris',
@@ -5153,7 +5179,7 @@ function findLoot(b, r) {
   return best;
 }
 function botWants(b, it) {
-  if (it.kind === 'weapon') return b.slots.some(s => s.id === 'fists') || (it.id === META_WEAPON && !b.slots.some(s => s.id === META_WEAPON));
+  if (it.kind === 'weapon') return b.slots.some(s => s.id === 'fists') || (!b.slots.some(s => s.id === it.id) && wpnRank(it.id) > Math.min(...b.slots.map(s => wpnRank(s.id))));
   if (it.kind === 'ammo') return b.slots.some(s => ammoType(WDEFS[s.id]) === it.type) && b.res[it.type] < 180;
   // アーマーは「今より多くシールドが手に入る」なら着替える（デスボックスのアーマーで回復するのも本家の定番）
   if (it.kind === 'armor') { const val = it.sh ?? SHIELD_CAP[it.level]; return val > b.sh + 25 || (it.level > b.armor && val >= b.sh); }
@@ -5166,9 +5192,13 @@ function botPick(b, it) {
   if (!it.alive) return;
   if (it.kind === 'weapon') {
     let i = b.slots.findIndex(s => s.id === 'fists');
-    if (i < 0 && it.id === META_WEAPON && !b.slots.some(s => s.id === META_WEAPON)) {
-      // 環境武器は持っている武器と持ち替える（持っていない方の武器を置いていく）
-      i = b.cur === 0 ? 1 : 0; const old = b.slots[i];
+    if (i < 0 && !b.slots.some(s => s.id === it.id)) {
+      // 今持っている一番ティアの低い武器より強ければ、それと持ち替える（弱い方を置いていく）
+      const lo = b.slots[0] && b.slots[1] && wpnRank(b.slots[1].id) < wpnRank(b.slots[0].id) ? 1 : 0;
+      if (wpnRank(it.id) > wpnRank(b.slots[lo].id)) i = lo;
+    }
+    if (i >= 0 && b.slots[i].id !== 'fists') {
+      const old = b.slots[i];
       spawnItem('weapon', { id: old.id, ammo: old.ammo }, b.pos.clone()); b.metaSwaps = (b.metaSwaps || 0) + 1;
     }
     if (i < 0) return;
@@ -6170,7 +6200,7 @@ function startMatch(kind = 'casual') {
       let id;
       if (comp) id = comp.shift();
       else if (meta.length) id = meta.shift();
-      else { do id = pick(ids); while (used.has(id)); }
+      else id = pickLegendWeighted(ids, used);
       used.add(id);
       // スマホ（タッチ操作）のときは、敵の腕前を下げる（PC のカジュアルをマスター帯にする前くらい）
       // 味方は、モードやランク・スマホに関係なく、いつもプレデター級
@@ -6460,8 +6490,8 @@ function renderLoginLog() {
 // 世界中で試合が終わり続けている感じを出すため、管理者画面を開いている間は 1 秒に 1 試合、Bot だけの試合の結果を計算して足していく。
 // 3D の試合は回さず、ゲームと同じルールで「誰がどのキャラで、どの武器を持っていたか」だけを決める：
 //  ・カジュアル／ランクは全部隊に 1 人ジブラルタル、ALGS はオルター／ジブラルタル／ニューキャッスル
-//  ・武器は床に落ちている武器（全種類同じ確率）から 0〜2 丁。実際の試合の記録（1 体あたり約 1.1 丁、ハボック約 15%）に合わせてある
-const SIM_KEY = 'apexfr_botsim';
+//  ・キャラは強いティアほど選ばれやすい。武器は床の武器から 0〜2 丁拾い、上のティアが見つかれば持ち替える（実際の試合に合わせてある）
+const SIM_KEY = 'apexfr_botsim2', SIM_SEEN = 8;   // ルールを変えたので記録は新しく取り直す
 let simAgg = (() => { try { return JSON.parse(localStorage.getItem(SIM_KEY)) || null; } catch (e) { return null; } })() || { n: 0, last: Date.now(), modes: {} };
 function simBotMatch() {
   const r = Math.random(), mode = r < 0.55 ? 'casual' : r < 0.9 ? 'ranked' : 'algs';
@@ -6471,13 +6501,16 @@ function simBotMatch() {
   for (let t = 0; t < 20; t++) {
     let team;
     if (mode === 'algs') team = ALGS_COMP.slice();
-    else { team = [META_LEGEND]; while (team.length < 3) { const id = pick(ids); if (!team.includes(id)) team.push(id); } }
+    else { team = [META_LEGEND]; while (team.length < 3) team.push(pickLegendWeighted(ids, new Set(team))); }
     if (t === 0) team.shift();   // 1 部隊はプレイヤーの代わりに 2 人
     for (const lid of team) {
       ag.bots++; ag.L[lid] = (ag.L[lid] || 0) + 1;
       const x = Math.random(), nw = x < 0.22 ? 0 : x < 0.64 ? 1 : 2, held = [];
       while (held.length < nw) { const w = pick(fw); if (!held.includes(w)) held.push(w); }
-      if (held.length && !held.includes(META_WEAPON) && Math.random() < 0.14) held[held.length - 1] = META_WEAPON;   // 環境武器に持ち替え
+      // 試合中に見つけた武器（SIM_SEEN 丁）のうち、持っているものより上のティアなら持ち替える
+      const ns = Math.floor(Math.random() * (SIM_SEEN + 1));
+      for (let k = 0; k < ns && held.length; k++) { const w = pick(fw); if (held.includes(w)) continue;
+        const lo = held.reduce((a, x, i) => wpnRank(x) < wpnRank(held[a]) ? i : a, 0); if (wpnRank(w) > wpnRank(held[lo])) held[lo] = w; }
       for (const w of held) ag.W[w] = (ag.W[w] || 0) + 1;
     }
   }
@@ -6515,11 +6548,12 @@ function renderUseStats(rows) {
   }
   if (!nb) { el.innerHTML = '<div style="opacity:.5">まだ記録がありません</div>'; return; }
   const sorted = c => Object.entries(c).sort((a, b) => b[1] - a[1]);
-  const table = (title, ent, nameOf) => `<div><h4>${title}</h4>` + ent.map(([k, v]) => { const pc = v / nb * 100;
-    return `<div class="ur"><b>${nameOf(k)}</b><div class="ub"><i style="width:${Math.min(100, pc)}%"></i></div><span>${pc.toFixed(1)}%（${v}）</span></div>`; }).join('') + '</div>';
+  const table = (title, ent, nameOf, tierOf) => `<div><h4>${title}</h4>` + ent.map(([k, v]) => { const pc = v / nb * 100;
+    return `<div class="ur"><b>${tierOf(k)}${nameOf(k)}</b><div class="ub"><i style="width:${Math.min(100, pc)}%"></i></div><span>${pc.toFixed(1)}%（${v}）</span></div>`; }).join('') + '</div>';
   el.innerHTML = `<div style="grid-column:1/-1;opacity:.8">友だちの試合 ${list.length}・Bot だけの試合（計算） ${sm.toLocaleString()}　合計 Bot のべ ${nb.toLocaleString()} 体　<span style="color:#ffd36b">● 1 秒ごとに更新中</span></div>`
-    + table('Bot のキャラ使用率', sorted(lc), k => (LEG[k] && LEG[k].name) || k)
-    + table('Bot の武器使用率（10 秒以上持っていた）', sorted(wc), k => (WDEFS[k] && WDEFS[k].name) || k);
+    + `<div style="grid-column:1/-1;font-size:12px">${tierBadge('S')}環境（一番強い） ${tierBadge('A')}強い ${tierBadge('B')}ふつう ${tierBadge('C')}弱い　<span style="opacity:.7">… Bot は強いティアほどよく使う</span></div>`
+    + table('Bot のキャラ使用率', sorted(lc), k => (LEG[k] && LEG[k].name) || k, k => tierBadge(legTier(k)))
+    + table('Bot の武器使用率（10 秒以上持っていた）', sorted(wc), k => (WDEFS[k] && WDEFS[k].name) || k, k => tierBadge(wpnTier(k)));
 }
 function loadUseStats() {
   simCatchUp(); renderUseStats();
@@ -6936,7 +6970,7 @@ function buildLegendMenu() {
   for (const L of LEGENDS) {
     const b = document.createElement('button');
     const ls = LSTYLE[L.id] || LSTYLE.bangalore, c1 = '#' + ls[0].toString(16).padStart(6, '0'), c2 = '#' + ls[1].toString(16).padStart(6, '0');
-    b.innerHTML = `<span class="sw" style="background:linear-gradient(135deg,${c1},${c2})">${L.name[0]}</span>${L.name}<small>${L.cls}</small>`; b.dataset.id = L.id;
+    b.innerHTML = `<span class="sw" style="background:linear-gradient(135deg,${c1},${c2})">${L.name[0]}</span>${L.name}<small>${L.cls}</small>${tierBadge(legTier(L.id))}`; b.dataset.id = L.id;
     b.addEventListener('click', () => { setLegend(L.id); refreshLegendMenu(); });
     box.appendChild(b);
   }
