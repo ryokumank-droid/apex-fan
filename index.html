@@ -5246,7 +5246,7 @@ function botFinishReload(b) {
 }
 const bDir = new V3(), bR = new V3(), bU = new V3(), bShot = new V3();
 const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
-const botSk = b => clamp(b.skill / 1.25, 0, 1);   // 腕前を 0〜1 に（1 = ALGS の上限）
+const botSk = b => clamp(b.skill / 1.25, 0, 1.12);   // 腕前を 0〜1 に（1 = 前の ALGS の上限。PC の強い Bot は 1.12 まで伸びる）
 const ZERO_V = new V3(), tLat = new V3();
 // 狙いのずれ（度）：腕前のぶれ＋撃ち始めの合わせ込み＋リコイル＋横に動く相手への遅れ
 function botAimError(b, tgt, dist, now) {
@@ -6428,7 +6428,8 @@ function startMatch(kind = 'casual') {
       used.add(id);
       // スマホ（タッチ操作）のときは、敵の腕前を下げる（PC のカジュアルをマスター帯にする前くらい）
       // 味方は、モードやランク・スマホに関係なく、いつもプレデター級
-      const b = makeBot(t, id); b.skill = t === 0 ? rand(1.2, 1.3) : rand(skill[0], skill[1]) * (TOUCH ? 0.65 : 1); sq.members.push(b); bots.push(b);
+      // PC は敵の腕前を +0.2（プレデター帯のプレイヤー向け。味方より少し上）。スマホは今まで通り
+      const b = makeBot(t, id); b.skill = t === 0 ? rand(1.25, 1.35) : TOUCH ? rand(skill[0], skill[1]) * 0.65 : rand(skill[0], skill[1]) + 0.2; sq.members.push(b); bots.push(b);
     }
     squads.push(sq);
   }
