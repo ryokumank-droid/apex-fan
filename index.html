@@ -479,12 +479,12 @@
           <kbd>E</kbd>拾う／ジップライン／長押しで味方を蘇生<br>
           <b>マッチ</b>　<kbd>Space</kbd>降下船から飛び降りる　<kbd>4</kbd>体力回復　<kbd>5</kbd>シールド回復　<kbd>6</kbd>フェニックス　<kbd>M</kbd>全体マップ<br>
           <kbd>G</kbd>グレネード　<kbd>7</kbd>グレネード切替　<kbd>R</kbd>（弾が満タン時）センチネル強化・ランページ回転数アップ<br>
-          <kbd>F</kbd>（死亡後の観戦中）早送り切替　<kbd>B</kbd>格闘　<kbd>N</kbd>スパレジェを眺める<br>
+          <kbd>F</kbd>（死亡後の観戦中）早送り切替　<kbd>B</kbd>スパレジェに持ち替え（もう一度で戻す・持っていなければ格闘）　<kbd>N</kbd>スパレジェを眺める<br>
           <kbd>中ボタン</kbd>ピン（敵・物資・場所）　<kbd>Tab</kbd>インベントリ　<kbd>E</kbd>デスボックス／ケアパッケージを開ける<br>
           <b>射撃場</b>　<kbd>H</kbd>全回復　<kbd>K</kbd>ダミーのシールド切替　<kbd>L</kbd>統計リセット<br>
           <kbd>Esc</kbd>メニュー<br>
           <b>パッド</b>　左スティック移動／右スティック視点　<kbd>RT</kbd>射撃　<kbd>LB</kbd>ADS　<kbd>R3</kbd>ジャンプ・降下　<kbd>LT</kbd>しゃがみ　<kbd>RB</kbd>拾う・リロード（長押しで蘇生）　<kbd>Y</kbd>武器切替<br>
-          <kbd>A</kbd>戦術　<kbd>A</kbd>+<kbd>B</kbd>アルティメット　<kbd>B</kbd>ピン　<kbd>十字↑</kbd>選んだ回復を使う（長押しで回復ホイール）　<kbd>十字↓</kbd>格闘　<kbd>十字→</kbd>グレネード　<kbd>十字←</kbd>グレネード切替　<kbd>X</kbd>体力回復　<kbd>L3</kbd>フェニックス<br>
+          <kbd>A</kbd>戦術　<kbd>A</kbd>+<kbd>B</kbd>アルティメット　<kbd>B</kbd>ピン　<kbd>十字↑</kbd>選んだ回復を使う（長押しで回復ホイール）　<kbd>十字↓</kbd>スパレジェに持ち替え（持っていなければ格闘）　<kbd>十字→</kbd>グレネード　<kbd>十字←</kbd>グレネード切替　<kbd>X</kbd>体力回復　<kbd>L3</kbd>フェニックス<br>
           <kbd>[</kbd><kbd>]</kbd>パッド感度　<kbd>-</kbd><kbd>=</kbd>右スティックのデッドゾーン（プレイ中にそのまま調整）　<kbd>Esc</kbd>メニュー　クリックでマウス操作に切替<br>
           <kbd>Start</kbd>インベントリ　<kbd>Back</kbd>マップ　メニューでは <kbd>十字←→</kbd>モード選択　<kbd>LB</kbd><kbd>RB</kbd>レジェンド選択　<kbd>A</kbd>決定
         </div>
@@ -2076,6 +2076,17 @@ const cycleWeapon = () => switchTo((cur + 1) % slotCount());
 function setTemp(id, dur) {
   W.temp = { id, ammo: WDEFS[id].mag, until: nowS() + dur };
   W.reloading = false; W.switchT = 0.5; W.shotIdx = 0; W.spin = 0; setVMGun();
+}
+// B キー・十字↓：スパレジェを持っていれば持ち替え（もう一度押すと元の武器へ）。持っていなければ格闘
+function meleeKey() {
+  if (P.dead || P.downed || P.inShip || P.drop) return;
+  const now = nowS();
+  if (W.temp && W.temp.heir) { endTemp(); return; }
+  if (heirOn() && !W.temp) {
+    W.temp = { id: 'fists', ammo: Infinity, until: Infinity, heir: true }; W.reloading = false; W.switchT = 0.3; W.shotIdx = 0; W.adsT = 0;
+    setVMGun(); HEIR.insp = now; HEIR.until = now + 0.6; sClick(700); return;
+  }
+  if (now > (PAD.meleeT || 0)) { PAD.meleeT = now + 0.65; melee(now); }
 }
 function endTemp() { W.temp = null; W.switchT = 0.45; W.reloading = false; setVMGun(); }
 function startSpecial(kind) {
@@ -3852,7 +3863,7 @@ function updateHUD(dt, now, fov) {
   const resv = reserveOf(d);
   $('#ammo').innerHTML = d.melee ? '—' : s.ammo + '<small> / ' + (resv === Infinity ? d.mag : resv) + '</small>';
   $('#ammo').style.color = !d.melee && s.ammo <= Math.ceil(d.mag * 0.25) ? '#ff6a4a' : '#fff';
-  $('#wname').textContent = d.name + (W.temp ? '  ' + Math.ceil(W.temp.until - now) + 's' : '') + (d.ampable && now < W.ampUntil ? '（強化）' : '')
+  $('#wname').textContent = (W.temp && W.temp.heir ? HEIRLOOM.name : d.name) + (W.temp && isFinite(W.temp.until) ? '  ' + Math.ceil(W.temp.until - now) + 's' : '') + (d.ampable && now < W.ampUntil ? '（強化）' : '')
     + (d.revvable && now < W.revUntil ? '（回転数アップ）' : '') + (d.adsCharge && W.adsCharge > 0 ? `（溜め ${Math.round(W.adsCharge * 100)}%）` : '')
     + (d.id === 'nemesis' && W.nemCharge > 0.05 ? `（チャージ ${Math.round(W.nemCharge * 100)}%）` : '');
   $('#reload').textContent = W.special ? (W.special.kind === 'amp' ? 'シールドセルで強化中…' : 'テルミットで回転数アップ中…')
@@ -6865,7 +6876,7 @@ function doKey(code) {
     case 'KeyM': if (MODE === 'match') M.mapOpen = !M.mapOpen; break;
     case 'Tab': openInv(); break;
     case 'KeyG': throwNade(); break;
-    case 'KeyB': if (!P.dead && !P.downed && !P.inShip && !P.drop && nowS() > (PAD.meleeT || 0)) { PAD.meleeT = nowS() + 0.65; melee(nowS()); } break;
+    case 'KeyB': meleeKey(); break;
     case 'KeyN': if (heirOn() && !P.dead && !P.downed) { HEIR.insp = nowS(); HEIR.until = nowS() + 2.3; } break;
     case 'KeyF': if (MODE === 'match' && P.dead && !M.over) { M.ff = M.ff > 1 ? 1 : 12; toast(M.ff > 1 ? '早送り ×12' : '等速'); } break;
     case 'Digit7': cycleNade(); break;
@@ -7154,7 +7165,7 @@ function pollPad(dt) {
     if (jp(PB.A)) { PAD.combo = false; if (down(PB.B)) { PAD.combo = true; doKey('KeyZ'); } }
     if (jp(PB.B)) { if (down(PB.A)) { PAD.combo = true; doKey('KeyZ'); } else doPing(); }
     if (jr(PB.A) && !PAD.combo) doKey('KeyQ');
-    if (jp(PB.DOWN) && nowS() > (PAD.meleeT || 0) && !P.dead && !P.downed && !P.inShip && !P.drop) { PAD.meleeT = nowS() + 0.65; melee(nowS()); }   // 格闘
+    if (jp(PB.DOWN)) meleeKey();   // スパレジェに持ち替え（もう一度で戻す）／持っていなければ格闘
     if (jp(PB.RIGHT)) doKey('KeyG');                                                                    // グレネード
     if (jp(PB.LEFT)) doKey('Digit7');                                                                   // （射撃モードがないので）グレネード切替
     if (jp(PB.BACK)) doKey('KeyM');                                                                     // マップ
@@ -7262,7 +7273,7 @@ function renderCos() {
   if (cosTab === 'store') {
     const hOwn = owns(HEIRLOOM.id);
     el.innerHTML = `<h3>スパレジェ（汎用）</h3><div class="cgrid">${itemCard(null, hOwn ? '所持済み' : `◆ ${HEIRLOOM.cost} シャード`)}</div>`
-      + `<div class="cnote">どのレジェンドでも使える近接武器。素手のときや格闘（PC：<kbd>B</kbd>、パッド：十字↓）で出て、<kbd>N</kbd> で眺められます。スパレジェシャードは Apex パックから出ます（500 パック目で確定）。</div>`
+      + `<div class="cnote">どのレジェンドでも使える近接武器。PC は <kbd>B</kbd>、パッドは十字↓で持ち替え（もう一度押すと元の武器）。左クリック／RT で振る。<kbd>N</kbd> で眺められます。スパレジェシャードは Apex パックから出ます（500 パック目で確定）。</div>`
       + `<h3>おすすめ（日替わり）</h3><div class="cgrid">${featuredToday().map(sk => itemCard(sk, owns(sk.id) ? '所持済み' : `🪙 ${RAR[sk.rar].price}`)).join('')}</div>`
       + `<h3>Apex パック</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="cbtn" id="buy1">パック 1 個　🪙 100</button><button class="cbtn" id="buy10">パック 10 個　🪙 1000</button></div>`
       + `<div class="cnote" style="margin-top:8px">Apex コインは試合で手に入ります（キル・ダメージ・順位）。レベルが上がるたびに Apex パックが 1 個もらえます。お金は一切かかりません。</div>`;
@@ -7291,7 +7302,7 @@ function renderLocker() {
     grid.querySelectorAll('.citem').forEach(c => c.addEventListener('click', () => {
       if (c.dataset.id === 'none') INV.heir = false; else if (own) INV.heir = true; else { cosTab = 'store'; renderCos(); return; }
       saveInv(); renderLocker(); }));
-    cosPreview('H'); $('#lockInfo').innerHTML = own ? `<b style="color:#ff6a6a">${HEIRLOOM.name}</b>　素手・格闘（<kbd>B</kbd>）で出ます。<kbd>N</kbd> で眺める。` : 'まだ持っていません（スパレジェシャード 150 個でストアから交換）';
+    cosPreview('H'); $('#lockInfo').innerHTML = own ? `<b style="color:#ff6a6a">${HEIRLOOM.name}</b>　<kbd>B</kbd>／十字↓で持ち替え。<kbd>N</kbd> で眺める。` : 'まだ持っていません（スパレジェシャード 150 個でストアから交換）';
     return;
   }
   tg.style.display = '';
