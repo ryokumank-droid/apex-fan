@@ -1149,14 +1149,14 @@ function rayCyl(o, d, len, cx, cz, r, y0, y1) {
   if (t < 0 || t > len) return -1;
   const y = o.y + d.y * t; return y >= y0 && y <= y1 ? t : -1;
 }
-function rayChar(o, d, len, p, scale) {
+function rayChar(o, d, len, p, scale, pad = 0) {
   // 遠いものは先に除外
   const mx = p.x - o.x, mz = p.z - o.z, along = mx * d.x + mz * d.z;
   if (along < -1 || along > len + 1) return null;
   let best = null;
-  const th = raySphere(o, d, len, p.x, p.y + 1.69 * scale, p.z, 0.16); if (th >= 0) best = { t: th, part: 'head' };
-  const tb = rayCyl(o, d, len, p.x, p.z, 0.3, p.y + 0.9 * scale, p.y + 1.55 * scale); if (tb >= 0 && (!best || tb < best.t)) best = { t: tb, part: 'body' };
-  const tl = rayCyl(o, d, len, p.x, p.z, 0.22, p.y, p.y + 0.9 * scale); if (tl >= 0 && (!best || tl < best.t)) best = { t: tl, part: 'legs' };
+  const th = raySphere(o, d, len, p.x, p.y + 1.69 * scale, p.z, 0.16 + pad * 0.5); if (th >= 0) best = { t: th, part: 'head' };
+  const tb = rayCyl(o, d, len, p.x, p.z, 0.3 + pad, p.y + 0.9 * scale, p.y + 1.55 * scale + pad * 0.3); if (tb >= 0 && (!best || tb < best.t)) best = { t: tb, part: 'body' };
+  const tl = rayCyl(o, d, len, p.x, p.z, 0.22 + pad, p.y - pad * 0.3, p.y + 0.9 * scale); if (tl >= 0 && (!best || tl < best.t)) best = { t: tl, part: 'legs' };
   return best;
 }
 function addRamp(x0, x1, z0, z1, h, dir, style = 'concrete', base = 0) {
@@ -1385,6 +1385,14 @@ const WDEFS = {
 WDEFS.fists = WD({ name: '素手', short: 'FISTS', hidden: true, melee: true, auto: false, dmg: 30, head: 1, rps: 1.6, mag: Infinity,
   reload: 1, reloadEmpty: 1, hip: 0, ads: 0, zoom: 1, adsMove: 1, punch: 0, recoil: () => [0, 0], sfx: SFX.pi, model: { len: 0.1, h: 0.05, col: 0x444444, barrel: 0.01 } });
 for (const k in WDEFS) WDEFS[k].id = k;
+for (const k in WDEFS) {
+  const d = WDEFS[k];
+  // アサルトライフルは反動を 1.35 倍
+  if (d.cat === 'AR') { const rc = d.recoil; d.recoil = i => { const r = rc(i); return [r[0] * 1.35, r[1] * 1.35]; }; }
+  // ショットガン・スナイパーは弾がとても大きい（当たり判定の太さ。見た目も光る玉）
+  if (d.cat === 'SHOTGUN') d.bulletR = 0.16;
+  if (d.cat === 'SNIPER') d.bulletR = 0.3;
+}
 WDEFS.repeater.adsCharge = true;    // 30-30：ADS で溜める
 WDEFS.sentinel.ampable = true;      // センチネル：シールドセルで強化
 WDEFS.rampage.revvable = true;      // ランページ：テルミットで回転数アップ
@@ -1983,6 +1991,7 @@ function physStep(dt, now) {
     if (fi > 0 && !P.grapple) tryMantle(fwd);
   }
   if (P.grapple) stepGrapple(dt);
+  if (P.grapple && P.grounded && P.grapple.t > 0.3) endGrapple();
   if (P.grounded && P.fuel < 3) P.fuel = Math.min(3, P.fuel + dt * 0.8);
   move(dt);
 }
@@ -1998,17 +2007,28 @@ function stepDrop(dt) {
   P.grounded = false; P.height = PH.STAND;
   moveBody(P, dt, land);
 }
+// グラップル（本家寄せ）：ロープを巻き取りながら引っ張る。ロープが張ると外向きの速度だけ消える＝振り子になり、
+// 空中操作で横に振れる。離しても勢いは残る。クールダウンは移動した距離で決まる
 function stepGrapple(dt) {
   const g = P.grapple; g.t += dt;
   const d = tA.copy(g.point).sub(tB.set(P.pos.x, P.pos.y + 1.2, P.pos.z));
   const dist = d.length();
-  if (dist < 1.8 || g.t > 1.6 || P.jumpBuf > 0) {
-    if (P.jumpBuf > 0) { P.vel.y = Math.max(P.vel.y, 0) + 4; P.jumpBuf = 0; }
-    P.grapple = null; return;
+  if (g.L === undefined) g.L = dist;
+  if (dist < 2.2 || g.t > 2.4 || P.jumpBuf > 0) {
+    if (P.jumpBuf > 0) { P.vel.y = Math.max(P.vel.y, 0) + 6; P.jumpBuf = 0; }   // ジャンプで離すと上に跳ねる（スリングショット）
+    endGrapple(); return;
   }
-  P.vel.addScaledVector(d.multiplyScalar(1 / dist), 46 * dt);
-  const sp = P.vel.length(); if (sp > 18) P.vel.multiplyScalar(18 / sp);
+  const n = d.multiplyScalar(1 / dist);
+  g.L = Math.max(1.5, g.L - 22 * dt);                       // 巻き取り
+  P.vel.addScaledVector(n, 34 * dt);                        // 引っ張る力
+  const radial = P.vel.dot(n);
+  if (dist > g.L && radial < 0) P.vel.addScaledVector(n, -radial);   // ロープが張る：離れる向きの速度を消す（振り子）
+  const sp = P.vel.length(); if (sp > 26) P.vel.multiplyScalar(26 / sp);
   P.grounded = false;
+}
+function endGrapple() {
+  const g = P.grapple; if (!g) return; P.grapple = null;
+  if (legend().id === 'pathfinder' && g.start) AB.tacT = cdTac(clamp(4 + P.pos.distanceTo(g.start) * 0.55, 6, 25));
 }
 
 // ================= 武器の状態 =================
@@ -2266,9 +2286,15 @@ function getTracer() {
   t.visible = false; return t;
 }
 // owner: 撃った Bot（プレイヤーなら null）。同じ部隊には当たらない
+// 大きい弾（ショットガン・スナイパー）は光る玉を付けて飛ばす
+const orbPool = [], orbMat = new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending });
+function getOrb() { const o = orbPool.pop() || (() => { const m = new THREE.Mesh(sphereGeo, orbMat); m.frustumCulled = false; scene.add(m); return m; })(); o.visible = true; return o; }
+function freeProj(pr) { pr.tr.visible = false; tracerPool.push(pr.tr); if (pr.orb) { pr.orb.visible = false; orbPool.push(pr.orb); pr.orb = null; } }
 function spawnProjectile(o, dir, d, power = 1, owner = null, mult = 1) {
-  projs.push({ p: o.clone(), v: dir.clone().multiplyScalar(d.speed * (0.6 + 0.4 * power)), dir: dir.clone(), d, life: 2.5, trav: 0,
-    tr: getTracer(), amp: power * mult, owner, team: owner ? owner.team : 0 });
+  const pr = { p: o.clone(), v: dir.clone().multiplyScalar(d.speed * (0.6 + 0.4 * power)), dir: dir.clone(), d, life: 2.5, trav: 0,
+    tr: getTracer(), amp: power * mult, owner, team: owner ? owner.team : 0 };
+  if (d.bulletR) { pr.orb = getOrb(); pr.orb.scale.setScalar(d.bulletR * (d.cat === 'SHOTGUN' ? 0.6 : 0.5)); pr.orb.position.copy(o); pr.orb.visible = false; }
+  projs.push(pr);
 }
 // 弾が止まる最初のヒットを返す（増幅バリケードは貫通してダメージ +20%）
 function firstHit(pr) {
@@ -2297,11 +2323,11 @@ function traceShot(pr, len) {
     const lim = best ? best.t : len;
     for (const b of bots) {
       if (b.dead || b.team === pr.team || b.state !== 'ground' || b.phaseUntil > M.t) continue;
-      const r = rayChar(pr.p, pr.dir, lim, b.pos, b.downed ? 0.45 : b.crouchUntil > M.t ? 0.72 : 1);
+      const r = rayChar(pr.p, pr.dir, lim, b.pos, b.downed ? 0.45 : b.crouchUntil > M.t ? 0.72 : 1, pr.d.bulletR || 0);
       if (r && (!best || r.t < best.t)) best = { t: r.t, kind: 'bot', bot: b, part: r.part };
     }
     if (pr.team !== 0 && !P.dead && !P.inShip && !hasBuff('void')) {
-      const r = rayChar(pr.p, pr.dir, best ? best.t : len, P.pos, P.height / PH.STAND);
+      const r = rayChar(pr.p, pr.dir, best ? best.t : len, P.pos, P.height / PH.STAND, pr.d.bulletR || 0);
       if (r && (!best || r.t < best.t)) best = { t: r.t, kind: 'player', part: r.part };
     }
   }
@@ -2328,10 +2354,11 @@ function updateProjectiles(dt) {
         const mult = hit.part === 'head' ? 1 + (pr.d.head - 1) * (1 - HELM_RED[P.helmet || 0]) : hit.part === 'legs' ? pr.d.legs : 1;
         hurtPlayer(Math.round(pr.d.dmg * mult * pr.amp), pr.owner);
       }
-      pr.tr.visible = false; tracerPool.push(pr.tr); projs.splice(i, 1); continue;
+      freeProj(pr); projs.splice(i, 1); continue;
     }
     pr.p.addScaledVector(pr.dir, len); pr.trav += len; pr.life -= dt;
-    if (pr.life <= 0) { pr.tr.visible = false; tracerPool.push(pr.tr); projs.splice(i, 1); continue; }
+    if (pr.life <= 0) { freeProj(pr); projs.splice(i, 1); continue; }
+    if (pr.orb) { pr.orb.position.copy(pr.p); pr.orb.visible = pr.trav > 1.5; }
     if (pr.trav > 4) {
       const a = pr.tr.geometry.attributes.position, tl = Math.min(pr.trav - 3, 7);
       a.setXYZ(0, pr.p.x, pr.p.y, pr.p.z);
@@ -2449,7 +2476,7 @@ function applyDamage(d, dmg, point, o = {}) {
   } else d.health -= dmg;
   d.lastHit = now; d.flash = 0.06;
   stats.dmg += dmg; stats.lastDmgT = now;
-  if (legend().id === 'maggie') reveal(d, 3);
+  if (legend().id === 'maggie') reveal(d, 2);
   const kill = d.health <= 0;
   dmgNumber(point || tmpP.set(d.g.position.x, 1.9, d.g.position.z), dmg, color, !!o.head, broke, d);
   hitmarker(kill ? 'kill' : o.head ? 'head' : '');
@@ -2633,7 +2660,13 @@ function cloud(p, r, color, dur, o = {}) {
 function gasCloud(p, r, dur) {
   return cloud(p, r, 0xa8c43a, dur, { opacity: 0.55, tick() {
     for (const d of dummiesNear(p, r)) { applyDamage(d, 5, null, { src: 'GAS' }); slowDummy(d, 1.2); reveal(d, 1.2); }
+    causticGasRegen(p, r);
   } });
+}
+// コースティックのパッシブ：ガスの中にいるとシールドが毎秒 5 回復（ガスは 1 秒ごとに判定）
+function causticGasRegen(p, r) {
+  if (legend().id === 'caustic' && !P.dead && !P.downed && P.pos.distanceTo(p) < r) P.sh = Math.min(P.shMax, P.sh + 5);
+  if (MODE === 'match') for (const b of bots) if (!b.dead && !b.downed && b.legend.id === 'caustic' && b.pos.distanceTo(p) < r) b.sh = Math.min(b.shMax, b.sh + 5);
 }
 function portalPair(a, b, dur, color = 0x9a5cff) {
   const mk = p => {
@@ -2736,14 +2769,14 @@ const LEGENDS = [
 
   { id: 'gibraltar', name: 'ジブラルタル', cls: 'サポート',
     passive: ['ガンシールド／フォーティファイド', 'ADS 中、正面からの弾を 50 まで防ぐシールドを展開（3 秒で回復）。被ダメージ 15% 減。'],
-    tac: { name: '防衛ドーム', cd: 30, desc: '投げた場所に弾を通さないドームを 12 秒展開。', use() {
+    tac: { name: '防衛ドーム', cd: 30, desc: '投げた場所に弾を通さないドームを 10 秒展開。', use() {
       throwItem({ speed: 16, up: 4, color: 0x6ec6ff, onLand(p) { toGround(p);
         const m = shieldMesh(new THREE.SphereGeometry(5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), p);
-        timed(12, t => { m.material.opacity = t > 10 ? 0.32 * (12 - t) / 2 : 0.32; }, () => remove(m)); sAbil(); } }); return true; } },
-    ult: { name: '防衛爆撃', cd: 180, desc: '発煙弾を投げ、2 秒後から 6 秒間、半径 7.5m に迫撃砲を降らせる。', use() {
+        timed(10, t => { m.material.opacity = t > 8 ? 0.32 * (10 - t) / 2 : 0.32; }, () => remove(m)); sAbil(); } }); return true; } },
+    ult: { name: '防衛爆撃', cd: 180, desc: '発煙弾を投げ、4 秒後から 5 秒間、半径 5m に迫撃砲を降らせる。', use() {
       throwItem({ speed: 20, up: 4, color: 0xff3a2a, emissive: 0x661100, onLand(p) { toGround(p);
-        cloud(p, 2, 0xff5a3a, 8, { opacity: 0.5 }); let acc = 0;
-        timed(8, (t, dt) => { if (t < 2) return; if ((acc += dt) > 0.13) { acc = 0; const a = rand(0, 7), r = Math.sqrt(Math.random()) * 7.5;
+        cloud(p, 2, 0xff5a3a, 9, { opacity: 0.5 }); let acc = 0;
+        timed(9, (t, dt) => { if (t < 4) return; if ((acc += dt) > 0.13) { acc = 0; const a = rand(0, 7), r = Math.sqrt(Math.random()) * 5;
           explode(toGround(new V3(p.x + Math.cos(a) * r, p.y + 2, p.z + Math.sin(a) * r)), 2.4, 40, { src: 'BOMBARDMENT' }); } }); } });
       sUlt(); return true; } } },
 
@@ -2787,9 +2820,9 @@ const LEGENDS = [
 
   { id: 'pathfinder', name: 'パスファインダー', cls: 'スカーミッシャー',
     passive: ['内部情報', '調査ビーコンでアルティメット短縮（射撃場では効果なし）。'],
-    tac: { name: 'グラップリングフック', cd: 15, desc: '40m 先までフックを撃ち込み、その地点へ引き寄せられる。Space で解除。', use() {
+    tac: { name: 'グラップリングフック', cd: 15, desc: '40m 先までフックを撃ち込み、巻き取りながら引き寄せられる。勢いは離しても残り、空中で左右に振れる（振り子）。Space で離すと上に跳ねる。クールダウンは移動した距離で 6〜25 秒。', use() {
       const a = aimRay(40); if (!a.hit) { toast('届かない'); return false; }
-      P.grapple = { point: a.point, t: 0 }; P.grounded = false; P.vel.y += 2; P.slide = false;
+      P.grapple = { point: a.point, t: 0, start: P.pos.clone() }; P.grounded = false; P.vel.y += 3; P.slide = false;
       const rope = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V3(), new V3()]), new THREE.LineBasicMaterial({ color: 0x222222 }));
       rope.frustumCulled = false; scene.add(rope);
       addEnt({ update() { if (!P.grapple) return false; const pa = rope.geometry.attributes.position;
@@ -2843,11 +2876,11 @@ const LEGENDS = [
       sUlt(); return true; } } },
 
   { id: 'caustic', name: 'コースティック', cls: 'コントローラー',
-    passive: ['ノックスビジョン', 'ガスの中のダミーをハイライト。'],
-    tac: { name: 'ノックスガストラップ', cd: 20, desc: '目の前にガス缶を置く。ダミーが近づくか撃つとガスが噴出（最大 6 個）。', use() {
+    passive: ['ノックスビジョン', 'ガスの中のダミーをハイライト。ガスの中にいると、シールドが毎秒 5 回復する。'],
+    tac: { name: 'ノックスガストラップ', cd: 20, desc: '目の前にガス缶を置く。ダミーが近づくか撃つとガスが噴出（最大 5 個）。', use() {
       const p = toGround(new V3(P.pos.x, P.pos.y + 0.5, P.pos.z).addScaledVector(flatFwd(tA), 1.6));
       const traps = AB.st.traps || (AB.st.traps = []);
-      if (traps.length >= 6) traps.shift().dead = true;
+      if (traps.length >= 5) traps.shift().dead = true;
       const m = mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.9, 12), stdMat(null, 0x6b7d2a, 0.6, 0.4), new V3(p.x, p.y + 0.45, p.z));
       let fired = false;
       const e = timed(600, () => { if (fired) return false; if (dummiesNear(p, 3.5).length) trigger(); },
@@ -2855,11 +2888,11 @@ const LEGENDS = [
       function trigger() { if (fired) return; fired = true; gasCloud(new V3(p.x, p.y, p.z), 6, 12); sGas(); }
       m.userData = { onShot: trigger }; shootables.push(m);
       traps.push(e); sClick(600); return true; } },
-    ult: { name: 'ノックスガスグレネード', cd: 150, desc: '広範囲（半径 12m）に 20 秒間ガスを撒く。', use() {
-      throwItem({ speed: 20, up: 4, color: 0x8aa43a, onLand(p) { toGround(p); gasCloud(p, 12, 20); sGas(); } }); sUlt(); return true; } } },
+    ult: { name: 'ノックスガスグレネード', cd: 150, desc: '広範囲（半径 8m）に 15 秒間ガスを撒く。', use() {
+      throwItem({ speed: 20, up: 4, color: 0x8aa43a, onLand(p) { toGround(p); gasCloud(p, 8, 15); sGas(); } }); sUlt(); return true; } } },
 
   { id: 'mirage', name: 'ミラージュ', cls: 'サポート',
-    passive: ['ナウユーシーミー', '味方の蘇生中・ビーコン使用中は透明になる。'],
+    passive: ['ナウユーシーミー', 'いつも体が半透明で見つかりにくい（敵が気づける距離が約半分）。味方の蘇生中・ビーコン使用中は透明になる。'],
     tac: { name: 'サイクアウト', cd: 15, desc: '前方へ走るデコイを出す。撃たれると消える。', use() {
       camera.getWorldDirection(tA); makeDecoy(P.pos.clone().addScaledVector(flatFwd(tB), 0.8), tA, 15); sPortal(); return true; } },
     ult: { name: 'ライフ・オブ・ザ・パーティー', cd: 90, desc: '周囲に 6 体のデコイを出し、自分は 3 秒間透明になる。', use() {
@@ -2869,9 +2902,9 @@ const LEGENDS = [
       addBuff('cloak', 3); sUlt(); return true; } } },
 
   { id: 'octane', name: 'オクタン', cls: 'スカーミッシャー',
-    passive: ['迅速修復', 'ダメージを受けていない間、体力が毎秒 1.5 回復。'],
-    tac: { name: '興奮剤', cd: 3, desc: '体力 10 を消費して 6 秒間移動速度 +30%。', use() {
-      P.hp = Math.max(1, P.hp - 10); P.lastHurt = nowS(); addBuff('stim', 6, { speed: 1.3 }); sAbil(); return true; } },
+    passive: ['迅速修復', 'ダメージを受けていない間、体力が毎秒 4.5 回復。'],
+    tac: { name: '興奮剤', cd: 3, desc: '体力 5 を消費して 10 秒間移動速度 +40%。', use() {
+      P.hp = Math.max(1, P.hp - 5); P.lastHurt = nowS(); addBuff('stim', 10, { speed: 1.4 }); sAbil(); return true; } },
     ult: { name: 'ジャンプパッド', cd: 90, desc: 'ジャンプパッドを投げる。乗ると高く飛び、空中で 2 段ジャンプできる。', use() {
       throwItem({ speed: 12, up: 4, color: 0xffb020, onLand(p, n) {
         if (n.y < 0.5) p.addScaledVector(n, 0.8); toGround(p);
@@ -2915,7 +2948,7 @@ const LEGENDS = [
       sUlt(); return true; } } },
 
   { id: 'crypto', name: 'クリプト', cls: 'リコン',
-    passive: ['ニューロリンク', 'ドローンの 30m 以内のダミーを自動でハイライト。'],
+    passive: ['ニューロリンク', 'ドローンの 15m 以内のダミーを自動でハイライト。'],
     tac: { name: '監視ドローン', cd: 40, desc: 'Q でドローンを出して操作（WASD・Space 上昇・Shift 下降）。もう一度 Q で本体へ戻る。ドローンを撃たれると壊れる。', use() {
       if (AB.drone) { if (AB.drone.active) exitDrone(); else enterDrone(); return 'stage'; }
       camera.getWorldDirection(tA);
@@ -2927,21 +2960,21 @@ const LEGENDS = [
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), glow(0x33ff99, 1, true)); eye.position.z = -0.2; g.add(eye);
       AB.drone = dr;
       addEnt({ update(dt) { if (!dr.alive) return false; g.position.copy(dr.pos); if (dr.active) g.rotation.y = P.yaw;
-        for (const d of dummiesNear(dr.pos, 30)) reveal(d, 0.3); return true; },
+        for (const d of dummiesNear(dr.pos, 15)) reveal(d, 0.3); return true; },
         dispose() { const i = shootables.indexOf(body); if (i >= 0) shootables.splice(i, 1); remove(g);
           if (AB.drone === dr) { if (dr.active) exitDrone(); AB.drone = null; } } });
       enterDrone(); sAbil(); return 'stage';
       function enterDrone() { AB.drone.active = true; P.saveYaw = P.yaw; P.savePitch = P.pitch; }
       function exitDrone() { AB.drone.active = false; P.yaw = P.saveYaw; P.pitch = P.savePitch; } } },
-    ult: { name: 'ドローン EMP', cd: 150, desc: 'ドローンから 3 秒後に半径 30m の EMP。ダミーのシールドに 50 ダメージと減速。', use() {
+    ult: { name: 'ドローン EMP', cd: 150, desc: 'ドローンから 5 秒後に半径 20m の EMP。ダミーのシールドに 40 ダメージと減速。', use() {
       const dr = AB.drone; if (!dr) { toast('ドローンが必要'); return false; }
       const p = dr.pos.clone();
       const ring = mesh(sphereGeo, glow(0x66ccff, 0.25, true), p);
-      timed(3.6, t => { if (t < 3) { ring.scale.setScalar(0.5 + t * 0.4); return; }
-        const k = (t - 3) / 0.6; ring.scale.setScalar(30 * k); ring.material.opacity = 0.35 * (1 - k);
+      timed(5.6, t => { if (t < 5) { ring.scale.setScalar(0.5 + t * 0.3); return; }
+        const k = (t - 5) / 0.6; ring.scale.setScalar(20 * k); ring.material.opacity = 0.35 * (1 - k);
         if (!ring.userData.done) { ring.userData.done = true; sBoom(1);
-          for (const d of dummiesNear(p, 30)) { applyDamage(d, 50, null, { shieldOnly: true, src: 'EMP' }); slowDummy(d, 5); reveal(d, 5); }
-          if (P.pos.distanceTo(p) < 30) addBuff('emp', 3, { speed: 0.7 }); } }, () => remove(ring));
+          for (const d of dummiesNear(p, 20)) { applyDamage(d, 40, null, { shieldOnly: true, src: 'EMP' }); slowDummy(d, 5); reveal(d, 5); }
+          if (P.pos.distanceTo(p) < 20) addBuff('emp', 3, { speed: 0.7 }); } }, () => remove(ring));
       sUlt(); return true; } } },
 
   { id: 'revenant', name: 'レヴナント', cls: 'アサルト',
@@ -3096,22 +3129,22 @@ const LEGENDS = [
       sUlt(); return true; } } },
 
   { id: 'maggie', name: 'マッドマギー', cls: 'アサルト',
-    passive: ['将軍の怒り', 'ダメージを与えたダミーを 3 秒ハイライト。'],
-    tac: { name: 'ライオットドリル', cd: 25, desc: '壁に撃ち込んだドリルが反対側を焼き、近くのダミーに継続ダメージ。', use() {
+    passive: ['将軍の怒り', 'ダメージを与えたダミーを 2 秒ハイライト。'],
+    tac: { name: 'ライオットドリル', cd: 25, desc: '壁に撃ち込んだドリルが反対側を焼き、近くのダミーに 0.5 秒ごとに 2 ダメージ。', use() {
       const a = aimRay(30); if (!a.hit || a.obj.userData.dummy) { toast('壁に向けて撃つ'); return false; }
       const p = a.point.clone().addScaledVector(a.normal, -1.5);
       const m = mesh(new THREE.ConeGeometry(0.12, 0.6, 8), stdMat(null, 0x777777, 0.4, 0.7), a.point); m.quaternion.setFromUnitVectors(UP, a.normal.clone().negate());
       const c = cloud(p, 2.5, 0xff6a20, 6, { opacity: 0.5, n: 10 });
       let acc = 0;
-      timed(6, (t, dt) => { if ((acc += dt) < 0.5) return; acc = 0; for (const d of dummiesNear(p, 5)) applyDamage(d, 8, null, { src: 'DRILL' }); },
+      timed(6, (t, dt) => { if ((acc += dt) < 0.5) return; acc = 0; for (const d of dummiesNear(p, 5)) applyDamage(d, 2, null, { src: 'DRILL' }); },
         () => { remove(m); c.dead = true; });
       sAbil(); return true; } },
-    ult: { name: '鉄球', cd: 90, desc: '転がる鉄球を放つ。通り道に加速パッドを落とし、ダミーに近づくと爆発（50 ダメージ）。', use() {
+    ult: { name: '鉄球', cd: 90, desc: '転がる鉄球を放つ。通り道に加速パッドを落とし、ダミーに近づくと爆発（35 ダメージ）。', use() {
       const f = flatFwd(new V3()), p = new V3(P.pos.x, 0, P.pos.z).addScaledVector(f, 1.5); toGround(p.setY(P.pos.y + 0.5));
       const v = f.multiplyScalar(14);
       const ball = mesh(sphereGeo, stdMat(TEX.metal, 0x8a4a2a, 0.4, 0.7), p); ball.scale.setScalar(0.45);
       let lastPad = p.clone(), pads = 0, exploded = false;
-      const boom = () => { if (exploded) return; exploded = true; explode(ball.position.clone(), 5, 50, { slow: 3, src: 'WRECKING BALL' }); };
+      const boom = () => { if (exploded) return; exploded = true; explode(ball.position.clone(), 5, 35, { slow: 3, src: 'WRECKING BALL' }); };
       timed(7, (t, dt) => {
         if (exploded) return false;
         const nx = p.x + v.x * dt, nz = p.z + v.z * dt;
@@ -3161,28 +3194,28 @@ const LEGENDS = [
       const m = mesh(new THREE.ConeGeometry(0.2, 0.3, 4), stdMat(null, 0x3a3a55, 0.5, 0.3), p);
       st.echo = { p, ent: timed(60, t => { m.position.y = p.y + Math.sin(t * 4) * 0.1; m.rotation.y += 0.05; }, () => { remove(m); if (st.echo && st.echo.p === p) st.echo = null; }) };
       sClick(1500); return 'stage'; } },
-    ult: { name: 'スナイパーマーク', cd: 90, desc: '5 発の専用スナイパーを構える。当てたダミーはハイライトされる。', use() {
+    ult: { name: 'スナイパーマーク', cd: 90, desc: '5 発の専用スナイパーを構える。当てたダミーはハイライトされ、スコープ（ADS）の視界に入った敵は減速する。', use() {
       setTemp('vantage', 30); sUlt(); return true; } } },
 
   { id: 'catalyst', name: 'カタリスト', cls: 'コントローラー',
     passive: ['バリケード', '扉を強化する（射撃場では効果なし）。'],
-    tac: { name: '貫通スパイク', cd: 20, desc: '磁性流体を撒き、触れたダミーに 20 ダメージと減速（最大 2 個）。', use() {
+    tac: { name: '貫通スパイク', cd: 20, desc: '磁性流体を撒き、触れたダミーに 10 ダメージと減速（最大 2 個）。', use() {
       const list = AB.st.spikes || (AB.st.spikes = []);
       if (list.length >= 2) list.shift().dead = true;
       throwItem({ speed: 16, up: 3, color: 0x221133, onLand(p) { toGround(p);
         const patch = mesh(new THREE.CircleGeometry(4.5, 24), glow(0x2a1840, 0.75), new V3(p.x, p.y + 0.03, p.z)); patch.rotation.x = -Math.PI / 2;
         const spikes = []; for (let i = 0; i < 14; i++) { const a = rand(0, 7), r = Math.sqrt(Math.random()) * 4;
           spikes.push(mesh(new THREE.ConeGeometry(0.08, 0.5, 5), stdMat(null, 0x3a2455, 0.3, 0.6), new V3(p.x + Math.cos(a) * r, p.y + 0.25, p.z + Math.sin(a) * r))); }
-        const e = timed(45, () => { for (const d of dummiesNear(p, 4.5)) if ((d.cd.spike || 0) < nowS()) { d.cd.spike = nowS() + 2; applyDamage(d, 20, null, { src: 'SPIKES' }); slowDummy(d, 3); } },
+        const e = timed(45, () => { for (const d of dummiesNear(p, 4.5)) if ((d.cd.spike || 0) < nowS()) { d.cd.spike = nowS() + 2; applyDamage(d, 10, null, { src: 'SPIKES' }); slowDummy(d, 3); } },
           () => { remove(patch); spikes.forEach(remove); const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); });
         list.push(e); } });
       sAbil(); return true; } },
-    ult: { name: 'ダークヴェール', cd: 120, desc: '幅 30m の磁性流体の壁を立てる。通過したダミーは減速＆ハイライト。', use() {
+    ult: { name: 'ダークヴェール', cd: 120, desc: '幅 20m の磁性流体の壁を立てる。通過したダミーは減速＆ハイライト。', use() {
       const f = flatFwd(new V3()), c = new V3(P.pos.x, P.pos.y, P.pos.z).addScaledVector(f, 4);
-      const wall = mesh(new THREE.PlaneGeometry(30, 4), glow(0x1a0f2a, 0.55), new V3(c.x, c.y + 2, c.z)); wall.rotation.y = P.yaw;
+      const wall = mesh(new THREE.PlaneGeometry(20, 4), glow(0x1a0f2a, 0.55), new V3(c.x, c.y + 2, c.z)); wall.rotation.y = P.yaw;
       timed(30, () => { for (const d of targets()) { if (d.dead) continue;
         const rel = new V3(d.g.position.x - c.x, 0, d.g.position.z - c.z), along = rel.dot(f), side = Math.abs(rel.x * -f.z + rel.z * f.x);
-        if (Math.abs(along) < 0.6 && side < 15) { slowDummy(d, 2); reveal(d, 2); } } }, () => remove(wall));
+        if (Math.abs(along) < 0.6 && side < 10) { slowDummy(d, 2); reveal(d, 2); } } }, () => remove(wall));
       sUlt(); return true; } } },
 
   { id: 'ballistic', name: 'バリスティック', cls: 'アサルト',
@@ -3237,8 +3270,14 @@ const LEGENDS = [
     passive: ['二段ジャンプ', '空中でもう一度ジャンプできる。'],
     tac: { name: 'スティンガーボルト', cd: 20, desc: 'ボルトを撃ち込み、刺さった場所の周囲 15m のダミーを 10 秒ハイライト（直撃で 15 ダメージ）。', use() {
       bolt({}); sAbil(); return true; } },
-    ult: { name: 'トラッキングボルト（仮）', cd: 120, desc: 'ボルトを扇状に 3 本撃ち、それぞれの周囲 20m を 15 秒ハイライト。', use() {
-      for (const sp of [-6, 0, 6]) bolt({ spread: sp, r: 20, dur: 15 }); sUlt(); return true; } } },
+    ult: { name: 'ボルトストーム', cd: 120, desc: '5 秒間、周囲 40m の見えている敵すべてに毎秒 17 ダメージ。当たるたびに体力（満タンならシールド）を 20 回復。', use() {
+      let acc = 0;
+      timed(5.05, (t, dt) => { if ((acc += dt) < 1) return; acc -= 1;
+        for (const d of dummiesNear(P.pos, 40)) {
+          const hp = new V3(d.g.position.x, d.g.position.y + 1.2, d.g.position.z); if (!losClear(new V3(P.pos.x, P.pos.y + 1.5, P.pos.z), hp)) continue;
+          applyDamage(d, 17, null, { src: 'BOLT STORM' }); reveal(d, 1.2); spark(hp, 0xffd36b);
+          const heal = Math.min(20, 100 - P.hp); P.hp += heal; if (heal < 20) P.sh = Math.min(P.shMax, P.sh + 20 - heal); } });
+      sUlt(); return true; } } },
 ];
 // throwItem に向きの上書きを許可（ボルト用）
 const _throwItem = throwItem;
@@ -3319,7 +3358,16 @@ function updateAbilities(dt, now) {
   const L = legend();
   if (hasBuff('beast')) for (const d of targets()) if (Math.hypot(d.g.position.x - P.pos.x, d.g.position.z - P.pos.z) < 75) reveal(d, 0.3);
   if (P.skydive) for (const d of targets()) reveal(d, 0.3);
-  if (L.id === 'octane' && now - P.lastHurt > 3) P.hp = Math.min(100, P.hp + 1.5 * dt);
+  // ヴァンテージ：ウルトのスコープをのぞいている間、視界に入った敵を減速
+  if (W.temp && W.temp.id === 'vantage' && W.adsT > 0.6 && (AB.vanT = (AB.vanT || 0) - dt) <= 0) {
+    AB.vanT = 0.15; camera.getWorldDirection(tA);
+    const half = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect) * 0.9;
+    for (const d of targets()) { if (d.dead) continue;
+      const to = tB.set(d.g.position.x - camera.position.x, d.g.position.y + 1.2 - camera.position.y, d.g.position.z - camera.position.z), l = to.length();
+      if (l > 300 || to.dot(tA) / l < Math.cos(half)) continue;
+      if (losClear(camera.position, tC.set(d.g.position.x, d.g.position.y + 1.2, d.g.position.z))) slowDummy(d, 0.4); }
+  }
+  if (L.id === 'octane' && now - P.lastHurt > 3) P.hp = Math.min(100, P.hp + 4.5 * dt);
   if (L.id === 'gibraltar' && now - P.lastHurt > 3) P.gunShield = 50;
   if (MODE === 'match') {
     // ミラージュ：蘇生中・ビーコン使用中は透明
@@ -4044,17 +4092,17 @@ const ALGS_MP = 50;   // マッチポイント形式のしきい値
 const ALGS_GAMES = 6; // グループステージの試合数
 const ALGS_COMP = ['alter', 'gibraltar', 'newcastle'];
 // このゲームの環境（データで一番強いもの）
-const META_LEGEND = 'gibraltar', META_WEAPON = 'havoc';
+const META_LEGEND = 'sparrow', META_WEAPON = 'pk';   // 調整後の環境（カジュアル・ランクは全部隊に 1 人スパロウ）
 // ティア（S が一番強い）。キャラはスキルの強さと Bot 同士の試合の成績（順位・ダメージ）、
 // 武器は近・中・遠距離の DPS の合計で決めた。Bot は強いティアほどよく使う
-const LEG_TIER = { gibraltar: 'S', catalyst: 'S', caustic: 'S', maggie: 'S', crypto: 'S',
-  lifeline: 'A', conduit: 'A', loba: 'A', valkyrie: 'A', bloodhound: 'A', alter: 'A', wattson: 'A', seer: 'A', ballistic: 'A',
-  horizon: 'B', rampart: 'B', wraith: 'B', bangalore: 'B', ash: 'B', newcastle: 'B', fuse: 'B', revenant: 'B',
-  octane: 'C', sparrow: 'C', mirage: 'C', vantage: 'C', pathfinder: 'C' };
-const WPN_TIER = { havoc: 'S', flatline: 'S', hemlok: 'S', nemesis: 'S',
-  volt: 'A', prowler: 'A', rampage: 'A', devotion: 'A', car: 'A', lstar: 'A', r301: 'A',
-  spitfire: 'B', r99: 'B', g7: 'B', alternator: 'B', wingman: 'B', re45: 'B', kraber: 'B', longbow: 'B', repeater: 'B',
-  p2020: 'C', chargerifle: 'C', tripletake: 'C', bocek: 'C', sentinel: 'C', pk: 'C', mastiff: 'C', moz: 'C', eva8: 'C' };
+const LEG_TIER = { sparrow: 'S', octane: 'S', pathfinder: 'S', bloodhound: 'S', valkyrie: 'S',
+  gibraltar: 'A', caustic: 'A', catalyst: 'A', lifeline: 'A', conduit: 'A', alter: 'A', wattson: 'A', seer: 'A', ballistic: 'A', mirage: 'A',
+  loba: 'B', horizon: 'B', rampart: 'B', wraith: 'B', bangalore: 'B', ash: 'B', newcastle: 'B', fuse: 'B', revenant: 'B', vantage: 'B',
+  maggie: 'C', crypto: 'C' };
+const WPN_TIER = { pk: 'S', mastiff: 'S', longbow: 'S', kraber: 'S', volt: 'S', prowler: 'S',
+  havoc: 'A', flatline: 'A', hemlok: 'A', nemesis: 'A', rampage: 'A', devotion: 'A', car: 'A', lstar: 'A', eva8: 'A', sentinel: 'A', chargerifle: 'A',
+  r301: 'B', spitfire: 'B', r99: 'B', g7: 'B', alternator: 'B', wingman: 'B', re45: 'B', repeater: 'B', moz: 'B',
+  p2020: 'C', tripletake: 'C', bocek: 'C' };
 const TIER_RANK = { S: 3, A: 2, B: 1, C: 0 }, TIER_PICK = { S: 5, A: 2.5, B: 1.2, C: 0.5 };
 const legTier = id => LEG_TIER[id] || 'B', wpnTier = id => id === 'fists' ? null : WPN_TIER[id] || 'C';
 const wpnRank = id => id === 'fists' ? -1 : TIER_RANK[wpnTier(id)];
@@ -5098,6 +5146,8 @@ function makeHumanoidTpl(styleId, accentOverride, cs) {
     }
   }
   mergeByMaterial(g);
+  // ミラージュはいつも半透明
+  if (styleId === 'mirage') g.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.38; o.material.depthWrite = false; o.castShadow = false; } });
   return g;
 }
 // 歩き・走り・しゃがみ・ダウン・空中の姿勢を付ける
@@ -5254,7 +5304,7 @@ function botDamage(b, dmg, point, o = {}, attacker = PLAYER_AGENT) {
   b.healing = null; b.reviving = null;
   const byPlayer = attacker === PLAYER_AGENT;
   if (byPlayer) {
-    M.dmg += total; b.plDmgT = M.t; if (legend().id === 'maggie') reveal(b, 3);
+    M.dmg += total; b.plDmgT = M.t; if (legend().id === 'maggie') reveal(b, 2);
     dmgNumber(point || tmpP.set(b.pos.x, b.pos.y + 1.9, b.pos.z), Math.round(total), color, !!o.head, broke, b);
     sHit(!!o.head, color !== SHIELD_CSS[0] || broke); if (broke) sBreak();
   }
@@ -5498,6 +5548,8 @@ function botThink(b, now) {
     const dx = e.pos.x - b.pos.x, dz = e.pos.z - b.pos.z, dy = e.pos.y - b.pos.y, d2 = dx * dx + dz * dz + dy * dy;
     if (d2 > 170 * 170) continue;
     if (e.isPlayer && (hasBuff('void') || (hasBuff('cloak') && d2 > 64))) continue;
+    // ミラージュは半透明なので、撃たれていなければ 85m より遠くでは気づかない
+    if ((e.isPlayer ? legend().id === 'mirage' : e.legend && e.legend.id === 'mirage') && d2 > 85 * 85 && !(b.lastAttacker === e && now - b.lastHitT < 6)) continue;
     const dist = Math.sqrt(d2), ang = Math.abs(angDiff(b.yaw, Math.atan2(-dx, -dz)));
     if (!(dist < 18 || ang < 1.4 || (b.lastAttacker === e && now - b.lastHitT < 6))) continue;
     const focus = !algsCalm() && squads[b.team].members.some(m => m !== b && m.isBot && !m.dead && !m.downed && m.target === e && m.vis);
@@ -5932,7 +5984,7 @@ function abZone(owner, p, r, dur, dps, color = 0xff6a20, slow = 1.5) {
   timed(dur, (t, dt) => { if ((acc += dt) < 1) return; acc = 0; for (const a of foesNear(owner, p, r)) { abHit(owner, a, dps); abSlow(a, slow); } }, () => remove(disc));
 }
 function abGas(owner, p, r, dur) {
-  cloud(p, r, 0xa8c43a, dur, { opacity: 0.55, tick() { for (const a of foesNear(owner, p, r)) { abHit(owner, a, 5); abSlow(a, 1.2, 0.7); } } });
+  cloud(p, r, 0xa8c43a, dur, { opacity: 0.55, tick() { for (const a of foesNear(owner, p, r)) { abHit(owner, a, 5); abSlow(a, 1.2, 0.7); } causticGasRegen(p, r); } });
 }
 function abReveal(owner, r) {
   scanRing(new V3(owner.pos.x, owner.pos.y + 1, owner.pos.z), r, 0xff3a2a);
@@ -5963,7 +6015,7 @@ function abWall(b, t, big, at = b.pos) {
 }
 function abDome(b, at = b.pos) {
   const m = shieldMesh(new THREE.SphereGeometry(5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), at.clone());
-  timed(12, null, () => remove(m));
+  timed(10, null, () => remove(m));
 }
 // 部隊の全員（プレイヤーも）を回復する設置物。shield=true ならシールドを回復
 function abHealZone(b, p, perSec, dur, shield, r = 6) {
@@ -5981,8 +6033,8 @@ function abHealZone(b, p, perSec, dur, shield, r = 6) {
 }
 function abRegen(b, perSec, dur, hp) { timed(dur, (t, dt) => { if (b.dead) return false; if (hp) b.hp = Math.min(100, b.hp + perSec * dt); else b.sh = Math.min(b.shMax, b.sh + perSec * dt); }); }
 function abBombard(b, p) {
-  let acc = 0; cloud(p.clone(), 2, 0xff5a3a, 8, { opacity: 0.5 });
-  timed(8, (t, dt) => { if (t < 2 || (acc += dt) < 0.15) return; acc = 0; const a = rand(0, 7), r = Math.sqrt(Math.random()) * 7;
+  let acc = 0; cloud(p.clone(), 2, 0xff5a3a, 9, { opacity: 0.5 });
+  timed(9, (t, dt) => { if (t < 4 || (acc += dt) < 0.15) return; acc = 0; const a = rand(0, 7), r = Math.sqrt(Math.random()) * 5;
     abExplode(b, groundSafe(new V3(p.x + Math.cos(a) * r, p.y + 2, p.z + Math.sin(a) * r)), 2.4, 40); });
 }
 function abRolling(b, p) {
@@ -6013,14 +6065,14 @@ function abPull(b, p, R, dur) {
 }
 function abEMP(b, p) {
   const s = mesh(sphereGeo, glow(0x66ccff, 0.25, true), p);
-  timed(3.5, t => { s.scale.setScalar(t < 3 ? 0.5 + t * 0.4 : 30 * (t - 3) / 0.5); },
-    () => { remove(s); for (const a of foesNear(b, p, 30)) { abHit(b, a, 50, { shieldOnly: true }); abSlow(a, 4, 0.7); } sBoomAt(p, 1); });
+  timed(5.5, t => { s.scale.setScalar(t < 5 ? 0.5 + t * 0.3 : 20 * (t - 5) / 0.5); },
+    () => { remove(s); for (const a of foesNear(b, p, 20)) { abHit(b, a, 40, { shieldOnly: true }); abSlow(a, 4, 0.7); } sBoomAt(p, 1); });
 }
 function abBall(b, t) {
   const from = b.pos.clone(), dest = t.pos.clone(), m = mesh(sphereGeo, stdMat(TEX.metal, 0x8a4a2a, 0.4, 0.7), from); m.scale.setScalar(0.45);
   const T = Math.max(0.6, hdist(from, dest) / 14);
   timed(T, k => { m.position.lerpVectors(from, dest, k / T); m.position.y = groundAt(m.position.x, m.position.z, m.position.y + 1).y + 0.45; },
-    () => { remove(m); if (!clearing) abExplode(b, dest, 5, 50, { slow: 3 }); });
+    () => { remove(m); if (!clearing) abExplode(b, dest, 5, 35, { slow: 3 }); });
 }
 function abSnipe(b, t) {
   const eye = new V3(b.pos.x, b.pos.y + 1.55, b.pos.z), aim = new V3(t.pos.x, t.pos.y + 1.3, t.pos.z);
@@ -6037,9 +6089,9 @@ const BOT_AB = {
   wraith: { tac: [25, 'def', b => { b.phaseUntil = M.t + 3; botBuff(b, 1.3, 3); }], ult: [150, 'mob', (b, t) => abTeleport(b, away(b, t, 30))] },
   bangalore: { tac: [25, 'atk', (b, t) => { const q = b.pos.clone().lerp(t.pos, 0.5); cloud(q.clone().add(new V3(0, 0.5, 0)), 5.5, 0xd8d8d8, 12, { opacity: 0.85, n: 24 });
       SMOKES.push({ p: q.add(new V3(0, 1.5, 0)), r: 5, until: nowS() + 12 }); }], ult: [180, 'atk', (b, t) => abRolling(b, t.pos.clone())] },
-  caustic: { tac: [20, 'atk', (b, t) => abThrow(b, t.pos.clone(), 0.8, p => abGas(b, p, 5, 10), 0x8aa43a)], ult: [150, 'atk', (b, t) => abThrow(b, t.pos.clone(), 1, p => abGas(b, p, 10, 18), 0x8aa43a)] },
+  caustic: { tac: [20, 'atk', (b, t) => abThrow(b, t.pos.clone(), 0.8, p => abGas(b, p, 5, 10), 0x8aa43a)], ult: [150, 'atk', (b, t) => abThrow(b, t.pos.clone(), 1, p => abGas(b, p, 8, 15), 0x8aa43a)] },
   mirage: { tac: [15, 'atk', (b, t) => makeDecoy(b.pos.clone(), flatDir(b.pos, t.pos), 10, 0x5fb4ff, b.team)], ult: [90, 'def', b => { for (let i = 0; i < 5; i++) makeDecoy(b.pos.clone(), new V3(rand(-1, 1), 0, rand(-1, 1)), 10, 0x5fb4ff, b.team); b.phaseUntil = M.t + 2; }] },
-  octane: { tac: [10, 'buff', b => { b.hp = Math.max(1, b.hp - 10); botBuff(b, 1.3, 6); }], ult: [90, 'mob', b => abJump(b, 15)] },
+  octane: { tac: [10, 'buff', b => { b.hp = Math.max(1, b.hp - 5); botBuff(b, 1.4, 10); }], ult: [90, 'mob', b => abJump(b, 15)] },
   wattson: { tac: [12, 'atk', (b, t) => abZone(b, t.pos.clone(), 2.5, 10, 20, 0x7fd0ff)], ult: [150, 'def', b => abHealZone(b, b.pos.clone(), 12, 30, true, 8)] },
   crypto: { tac: [40, 'rec', b => abReveal(b, 50)], ult: [150, 'atk', (b, t) => abEMP(b, t.pos.clone())] },
   revenant: { tac: [20, 'mob', (b, t) => abLeap(b, t ? toward(b, t, 14) : away(b, null, 10))], ult: [180, 'buff', b => { b.over = 75; }] },
@@ -6053,14 +6105,18 @@ const BOT_AB = {
   seer: { tac: [30, 'atk', (b, t) => { abReveal(b, 35); for (const a of foesNear(b, t.pos, 4)) abSlow(a, 1.5); }], ult: [120, 'rec', b => abReveal(b, 25)] },
   ash: { tac: [25, 'atk', (b, t) => abThrow(b, t.pos.clone(), 0.6, p => { for (const a of foesNear(b, p, 3.5)) { abHit(b, a, 25); abSnare(a, 3); } }, 0xff3355)],
     ult: [120, 'mob', (b, t) => abTeleport(b, toward(b, t, 25))] },
-  maggie: { tac: [25, 'atk', (b, t) => abZone(b, t.pos.clone(), 4, 6, 16)], ult: [90, 'atk', (b, t) => abBall(b, t)] },
+  maggie: { tac: [25, 'atk', (b, t) => abZone(b, t.pos.clone(), 4, 6, 4)], ult: [90, 'atk', (b, t) => abBall(b, t)] },
   newcastle: { tac: [20, 'def', (b, t) => abWall(b, t, false)], ult: [180, 'def', (b, t) => abWall(b, t, true)] },
-  vantage: { tac: [20, 'mob', (b, t) => abLeap(b, away(b, t, 15))], ult: [90, 'atk', (b, t) => abSnipe(b, t)] },
-  catalyst: { tac: [20, 'atk', (b, t) => abZone(b, t.pos.clone(), 4.5, 30, 10, 0x2a1840, 3)], ult: [120, 'def', (b, t) => abWall(b, t, true)] },
+  vantage: { tac: [20, 'mob', (b, t) => abLeap(b, away(b, t, 15))], ult: [90, 'atk', (b, t) => { abSnipe(b, t); abSlow(t, 3); }] },
+  catalyst: { tac: [20, 'atk', (b, t) => abZone(b, t.pos.clone(), 4.5, 30, 5, 0x2a1840, 3)], ult: [120, 'def', (b, t) => abWall(b, t, true)] },
   ballistic: { tac: [25, 'atk', (b, t) => { abHit(b, t, 20); if (t.isPlayer) { P.scannedUntil = M.t + 6; toast('ウィスラーで狙われた！'); } }], ult: [180, 'buff', b => botBuff(b, 1.15, 30)] },
   conduit: { tac: [25, 'def', b => abRegen(b, 20, 3)], ult: [150, 'atk', (b, t) => abZone(b, t.pos.clone(), 3.5, 15, 10, 0x66aaff)] },
   alter: { tac: [25, 'mob', (b, t) => abTeleport(b, away(b, t, 8))], ult: [150, 'mob', (b, t) => abTeleport(b, away(b, t, 30))] },
-  sparrow: { tac: [20, 'rec', b => abReveal(b, 15)], ult: [120, 'atk', (b, t) => { abReveal(b, 40); abHit(b, t, 15); }] },
+  sparrow: { tac: [20, 'rec', b => abReveal(b, 15)], ult: [120, 'atk', b => { let acc = 0;
+    timed(5.05, (tt, dt) => { if (b.dead || b.downed) return false; if ((acc += dt) < 1) return; acc -= 1;
+      const eye = new V3(b.pos.x, b.pos.y + 1.55, b.pos.z);
+      for (const a of foesNear(b, b.pos, 40)) { if (!losClear(eye, new V3(a.pos.x, a.pos.y + 1.2, a.pos.z))) continue;
+        abHit(b, a, 17); const heal = Math.min(20, 100 - b.hp); b.hp += heal; if (heal < 20) b.sh = Math.min(b.shMax, b.sh + 20 - heal); } }); }] },
 };
 // Bot のグレネード：見えている敵か、さっきまで見えていた場所へ投げる
 function botNade(b, t, dist, now) {
@@ -6123,7 +6179,7 @@ function placeWall(b, at, foe, big, now) {
 const SUPPORT_AB = {
   gibraltar(b, c) {
     if (c.now >= b.tacT && (c.need || c.open) && !coveredAt(c.sq, c.at, c.now)) {
-      abDome(b, c.at); b.tacT = c.now + 30; c.sq.cover = { pos: c.at.clone(), r: 5, until: c.now + 12 }; allySay(b, 'プロテクトドーム');
+      abDome(b, c.at); b.tacT = c.now + 30; c.sq.cover = { pos: c.at.clone(), r: 5, until: c.now + 10 }; allySay(b, 'プロテクトドーム');
     } else if (c.now >= b.ultT && c.foe && !algsCalm() && !bldAt(c.foe.pos) && hdist(c.foe.pos, c.at) > 12 && hdist(c.foe.pos, b.pos) < 70) {
       abBombard(b, c.foe.pos.clone()); b.ultT = c.now + 180; allySay(b, '防衛爆撃');
     }
@@ -6646,7 +6702,7 @@ function renderLoginLog() {
 // ---- Bot だけの試合（計算） ----
 // 世界中で試合が終わり続けている感じを出すため、管理者画面を開いている間は 1 秒に 1 試合、Bot だけの試合の結果を計算して足していく。
 // 3D の試合は回さず、ゲームと同じルールで「誰がどのキャラで、どの武器を持っていたか」だけを決める：
-//  ・カジュアル／ランクは全部隊に 1 人ジブラルタル、ALGS はオルター／ジブラルタル／ニューキャッスル
+//  ・カジュアル／ランクは全部隊に 1 人環境キャラ（META_LEGEND）、ALGS はオルター／ジブラルタル／ニューキャッスル
 //  ・キャラは強いティアほど選ばれやすい。武器は床の武器から 0〜2 丁拾い、上のティアが見つかれば持ち替える（実際の試合に合わせてある）
 const SIM_KEY = 'apexfr_botsim2', SIM_SEEN = 8;   // ルールを変えたので記録は新しく取り直す
 let simAgg = (() => { try { return JSON.parse(localStorage.getItem(SIM_KEY)) || null; } catch (e) { return null; } })() || { n: 0, last: Date.now(), modes: {} };
