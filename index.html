@@ -5390,6 +5390,8 @@ function findLoot(b, r) {
   for (const it of M.items) {
     if (!it.alive || (it.claim && it.claim !== b && !it.claim.dead)) continue;
     const d = hdist(it.pos, b.pos); if (d > bd || Math.abs(it.pos.y - b.pos.y) > 4) continue;
+    // 味方はプレイヤーの近く（30m、銃を 1 丁も持っていなければ 45m）の物資だけ拾う
+    if (b.team === 0 && !P.dead && hdist(it.pos, P.pos) > (b.slots.every(s => s.id === 'fists') ? 45 : 30)) continue;
     if (!botWants(b, it)) continue;
     bd = d; best = it;
   }
@@ -5615,7 +5617,9 @@ function botThink(b, now) {
   const outNow = Math.hypot(b.pos.x - R.cx, b.pos.z - R.cz) > R.r - 4;
   const outNext = Math.hypot(b.pos.x - tr.cx, b.pos.z - tr.cz) > tr.r - 6;
   if (outNow || (outNext && R.phase === 'shrink')) {
-    if (b.goalKind !== 'ring' || !b.goal) { b.goal = M.kind === 'algs' ? ringSpot(b.team, tr).add(b.fOff) : pointInRing(tr, 0.5); b.goalKind = 'ring'; }
+    const plIn = b.team === 0 && !P.dead && !P.downed && Math.hypot(P.pos.x - tr.cx, P.pos.z - tr.cz) < tr.r - 6;
+    if (plIn) { b.goal = P.pos.clone().add(b.fOff); b.goalKind = 'ring'; }   // 味方はリングの中にいるプレイヤーのそばへ
+    else if (b.goalKind !== 'ring' || !b.goal) { b.goal = M.kind === 'algs' ? ringSpot(b.team, tr).add(b.fOff) : pointInRing(tr, 0.5); b.goalKind = 'ring'; }
     b.healing = null; return;
   }
   const rotate = outNext;
@@ -5653,7 +5657,8 @@ function botThink(b, now) {
   if (!b.vis) botUseAbilities(b, null, 0, now, true);
   // 4. 見失った敵を追う（武器があるときだけ）
   const calm = algsCalm();
-  if (armed && b.target && b.lastSeen && !b.vis && !calm) { b.goal = b.lastSeen.clone(); b.goalKind = 'hunt'; return; }
+  const leash = b.team === 0 && !P.dead;   // 味方はプレイヤーから離れすぎない
+  if (armed && b.target && b.lastSeen && !b.vis && !calm && (!leash || hdist(b.lastSeen, P.pos) < 45)) { b.goal = b.lastSeen.clone(); b.goalKind = 'hunt'; return; }
   // 5. 回復
   if (!b.healing && now - b.combatT > 2.5) { const ht = botHealChoice(b); if (ht) { b.healing = { type: ht, t: HEALS[ht].t }; } }
   botShare(b, now);
@@ -5662,6 +5667,7 @@ function botThink(b, now) {
     for (const ev of M.events) {
       if (ev.team === b.team || now - ev.t > 1.5 || Math.random() > 0.5) continue;
       const dd = hdist(ev.pos, b.pos); if (dd > 170 || dd < 18) continue;
+      if (leash && hdist(ev.pos, P.pos) > 60) continue;   // 味方はプレイヤーの近くの撃ち合いにだけ行く
       if ((b.hp + b.sh) / (100 + b.shMax) < 0.6) break;   // 自分が削れているなら漁夫には行かない
       // 撃ち合いの 25m 手前まで寄る（そこで見えた相手と撃ち合う）
       const k = Math.max(0, dd - 25) / dd;
@@ -5673,7 +5679,7 @@ function botThink(b, now) {
   }
   // 7. 物資
   if (b.item && (!b.item.alive || b.itemT > 6)) { if (b.item.claim === b) b.item.claim = null; b.item = null; }
-  if (!b.item) b.item = findLoot(b, b.team === 0 && !P.dead ? 20 : rotate ? 15 : calm ? (M.ring.stage >= 3 ? 8 : 22) : 40);
+  if (!b.item) b.item = findLoot(b, b.team === 0 && !P.dead ? (b.slots.some(s => s.id === 'fists') ? 32 : 20) : rotate ? 15 : calm ? (M.ring.stage >= 3 ? 8 : 22) : 40);
   if (b.item) {
     if (hdist(b.item.pos, b.pos) < 1.6 && Math.abs(b.item.pos.y - b.pos.y) < 1.6) { botPick(b, b.item); b.item = null; }
     else { b.goal = b.item.pos.clone(); b.goalKind = 'loot'; b.itemT += 0.25; }
@@ -5787,6 +5793,8 @@ function updateBot(b, dt, now) {
     if (!push && (b.reloadT > 0.5 || (myFrac < 0.55 && !tWeak)) && dist < 45) adv = -0.6;
     const st = d.melee ? 0.2 : 0.9;
     wx = fx * adv - fz * b.strafe * st; wz = fz * adv + fx * b.strafe * st;
+    // 味方：撃ち合い中でもプレイヤーから 35m 以上離れたら、撃ちながらプレイヤーの方へ寄る（1 人で突っ込んで 1 対 3 にならない）
+    if (b.team === 0 && !P.dead && !P.downed && hdist(P.pos, b.pos) > 35) { const py = yawTo(b.pos, P.pos); wx = -Math.sin(py) - fz * b.strafe * 0.4; wz = -Math.cos(py) + fx * b.strafe * 0.4; }
     speed = push && dist > 6 ? PH.SPRINT : adv > 0 && dist > pref * 2 ? PH.SPRINT : PH.JOG;
     if (b.crouchUntil > M.t) speed *= 0.55;
     if (push) b.pushes = (b.pushes || 0) + (b.wasPush ? 0 : 1); b.wasPush = push;
@@ -6429,7 +6437,7 @@ function startMatch(kind = 'casual') {
       // スマホ（タッチ操作）のときは、敵の腕前を下げる（PC のカジュアルをマスター帯にする前くらい）
       // 味方は、モードやランク・スマホに関係なく、いつもプレデター級
       // PC は敵の腕前を +0.2（プレデター帯のプレイヤー向け。味方より少し上）。スマホは今まで通り
-      const b = makeBot(t, id); b.skill = t === 0 ? rand(1.25, 1.35) : TOUCH ? rand(skill[0], skill[1]) * 0.65 : rand(skill[0], skill[1]) + 0.2; sq.members.push(b); bots.push(b);
+      const b = makeBot(t, id); b.skill = t === 0 ? rand(1.35, 1.4) : TOUCH ? rand(skill[0], skill[1]) * 0.65 : rand(skill[0], skill[1]) + 0.2; sq.members.push(b); bots.push(b);
     }
     squads.push(sq);
   }
