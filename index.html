@@ -238,6 +238,54 @@
   #useStats .ub{height:10px;background:#2a2a32} #useStats .ub i{display:block;height:100%;background:#d8462b}
   #useStats .ur span{text-align:right;opacity:.85}
   /* 設定画面 */
+  /* ---- ストア・Apex パック・ロッカー ---- */
+  .startrow.three{grid-template-columns:repeat(3,1fr);margin-bottom:10px}
+  #cos{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:22;font-family:'Noto Sans JP',sans-serif}
+  #cos.open{display:flex}
+  #cos .cbox{width:min(1100px,calc(100vw - 16px));height:calc(100vh - 16px);max-height:760px;display:flex;flex-direction:column;background:rgba(16,16,20,.98);border-top:4px solid #d8462b;box-sizing:border-box}
+  #cos .chead{display:flex;align-items:center;gap:6px;padding:8px 12px;flex-wrap:wrap}
+  #cos .ctab{background:#24242b;color:#fff;border:1px solid #3a3a44;padding:7px 16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  #cos .ctab.on{background:#d8462b;border-color:#d8462b}
+  #cos .cur{margin-left:auto;display:flex;gap:12px;font-size:13px;flex-wrap:wrap}
+  #cos .cur b{font-size:16px;margin-left:3px}
+  #cos .cclose{background:#2f3540;color:#fff;border:0;padding:7px 14px;font-size:15px;cursor:pointer;font-family:inherit}
+  #cos .cbody{flex:1;overflow:auto;padding:10px 14px 16px}
+  #cos h3{margin:10px 0 6px;color:#ffd36b;font-size:16px}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .citem{position:relative;background:#1e1e25;border:1px solid #33333d;border-bottom:4px solid var(--rc);padding:6px;cursor:pointer;min-height:118px;display:flex;flex-direction:column}
+  .citem:hover{border-color:#777}
+  .citem.on{outline:2px solid #ffd36b}
+  .citem .sw{height:58px;margin-bottom:5px;position:relative;overflow:hidden}
+  .citem .nm{font-weight:700;font-size:13px;line-height:1.3}
+  .citem .rr{font-size:11px;color:var(--rc);font-weight:700}
+  .citem .pr{margin-top:auto;font-size:12px;text-align:right;opacity:.9}
+  .citem .lock{position:absolute;top:8px;right:8px;font-size:11px;background:rgba(0,0,0,.6);padding:1px 6px}
+  .cbtn{background:#d8462b;color:#fff;border:0;padding:9px 18px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .cbtn.alt{background:#2f3540}
+  .cbtn:disabled{opacity:.4;cursor:default}
+  .cnote{font-size:12px;opacity:.75;line-height:1.7}
+  #lockWrap{display:grid;grid-template-columns:minmax(260px,38%) 1fr;gap:12px}
+  @media (max-width:760px){#lockWrap{grid-template-columns:1fr}}
+  #cosCv{width:100%;height:330px;background:radial-gradient(#2a2a34,#121216);display:block}
+  @media (max-height:500px){#cosCv{height:200px}}
+  #lockSel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  #lockSel select{background:#24242b;color:#fff;border:1px solid #3a3a44;padding:6px;font-size:14px;font-family:inherit}
+  /* パック開封 */
+  #packStage{min-height:300px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:10px 0}
+  .apack{width:150px;height:200px;background:linear-gradient(160deg,#d8462b,#7a1a10);clip-path:polygon(0 0,100% 0,100% 88%,80% 100%,0 100%);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;letter-spacing:2px;box-shadow:0 0 30px rgba(216,70,43,.5)}
+  .apack.shake{animation:pshake .7s ease-in-out}
+  @keyframes pshake{0%,100%{transform:none}20%{transform:rotate(-6deg) scale(1.05)}40%{transform:rotate(6deg) scale(1.1)}60%{transform:rotate(-4deg) scale(1.15)}80%{transform:scale(1.25);opacity:.6}}
+  .pcard{width:170px;height:230px;perspective:800px}
+  .pcard .in{position:relative;width:100%;height:100%;transition:transform .55s;transform-style:preserve-3d;transform:rotateY(180deg)}
+  .pcard.flip .in{transform:none}
+  .pcard .fr,.pcard .bk{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;padding:10px;box-sizing:border-box}
+  .pcard .bk{transform:rotateY(180deg);background:linear-gradient(160deg,#3a3a44,#1a1a20);border:2px solid var(--rc);box-shadow:0 0 22px var(--rc)}
+  .pcard .fr{background:linear-gradient(180deg,#22222a,#141418);border:2px solid var(--rc);box-shadow:0 0 30px var(--rc)}
+  .pcard .fr .sw{height:110px;margin-bottom:8px}
+  .pcard .fr b{font-size:15px} .pcard .fr .rr{color:var(--rc);font-weight:800;font-size:12px}
+  .pcard .fr .nw{margin-top:auto;font-size:12px;opacity:.85}
+  .pcard.leg .fr{animation:legGlow 1.2s ease-in-out infinite alternate}
+  @keyframes legGlow{from{box-shadow:0 0 18px var(--rc)}to{box-shadow:0 0 50px var(--rc)}}
   #setPanel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:20}
   #setPanel.open{display:flex}
   #setPanel .spbox{width:min(980px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;background:rgba(18,18,22,.97);border-top:4px solid #d8462b;padding:16px 22px;box-sizing:border-box}
@@ -407,6 +455,11 @@
     <div class="sub">非公式ファンメイド — レジェンドを選んで、射撃場かマッチを始める</div>
     <div id="whoami"></div>
     <div id="pwaHint"></div>
+    <div class="startrow three">
+      <button class="bigbtn alt" id="openStore">🛒 ストア</button>
+      <button class="bigbtn alt" id="openPacks">📦 Apex パック</button>
+      <button class="bigbtn alt" id="openLocker">🎨 ロッカー</button>
+    </div>
     <div id="legendPick">
       <h2>レジェンド</h2>
       <div id="legends"></div>
@@ -426,7 +479,7 @@
           <kbd>E</kbd>拾う／ジップライン／長押しで味方を蘇生<br>
           <b>マッチ</b>　<kbd>Space</kbd>降下船から飛び降りる　<kbd>4</kbd>体力回復　<kbd>5</kbd>シールド回復　<kbd>6</kbd>フェニックス　<kbd>M</kbd>全体マップ<br>
           <kbd>G</kbd>グレネード　<kbd>7</kbd>グレネード切替　<kbd>R</kbd>（弾が満タン時）センチネル強化・ランページ回転数アップ<br>
-          <kbd>F</kbd>（死亡後の観戦中）早送り切替<br>
+          <kbd>F</kbd>（死亡後の観戦中）早送り切替　<kbd>B</kbd>格闘　<kbd>N</kbd>スパレジェを眺める<br>
           <kbd>中ボタン</kbd>ピン（敵・物資・場所）　<kbd>Tab</kbd>インベントリ　<kbd>E</kbd>デスボックス／ケアパッケージを開ける<br>
           <b>射撃場</b>　<kbd>H</kbd>全回復　<kbd>K</kbd>ダミーのシールド切替　<kbd>L</kbd>統計リセット<br>
           <kbd>Esc</kbd>メニュー<br>
@@ -466,6 +519,16 @@
     <div class="spnote">友だちに見える名前です（12 文字まで）。</div>
     <input id="nameInp" maxlength="12" placeholder="名前を入力">
     <button class="bigbtn" id="nameOk">決定</button>
+  </div>
+</div>
+<div id="cos">
+  <div class="cbox">
+    <div class="chead">
+      <button class="ctab" data-t="store">ストア</button><button class="ctab" data-t="packs">Apex パック</button><button class="ctab" data-t="locker">ロッカー</button>
+      <div class="cur"></div>
+      <button class="cclose" id="cosClose">✕</button>
+    </div>
+    <div class="cbody" id="cosBody"></div>
   </div>
 </div>
 <div id="setPanel">
@@ -1337,6 +1400,21 @@ function gmat(c, r = 0.45, m = 0.5, kind = 'poly') {
   const o = { color: c, roughness: r, metalness: m, map: tx, normalMap: tx.nrm, roughnessMap: tx, normalScale: new THREE.Vector2(kind === 'poly' ? 0.35 : 0.4, kind === 'poly' ? 0.35 : 0.4), envMapIntensity: 1.15 };
   return (gunMatCache[key] = kind === 'paint' ? new THREE.MeshPhysicalMaterial({ ...o, clearcoat: 0.7, clearcoatRoughness: 0.22 }) : new THREE.MeshStandardMaterial(o));
 }
+const shadeHex = (c, k) => new THREE.Color(c).multiplyScalar(k).getHex();
+function camoMat(c1, c2) {
+  const key = 'camo:' + c1 + ':' + c2; if (gunMatCache[key]) return gunMatCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d');
+  const hex = c => '#' + c.toString(16).padStart(6, '0');
+  x.fillStyle = hex(c1); x.fillRect(0, 0, 128, 128);
+  let sd = (c1 ^ c2) % 997 + 1; const rnd = () => (sd = sd * 16807 % 2147483647) / 2147483647;
+  for (const [c, n] of [[shadeHex(c1, 0.6), 14], [c2, 9], [shadeHex(c2, 0.55), 7]]) {
+    x.fillStyle = hex(c);
+    for (let i = 0; i < n; i++) { const cx = rnd() * 128, cy = rnd() * 128, r = 8 + rnd() * 16;
+      for (const ox of [-128, 0, 128]) for (const oy of [-128, 0, 128]) { x.beginPath(); x.ellipse(cx + ox, cy + oy, r, r * (0.5 + rnd() * 0.5), rnd() * 3, 0, 7); x.fill(); } }
+  }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.25, 0.25); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (gunMatCache[key] = new THREE.MeshStandardMaterial({ map: t, roughness: 0.55, metalness: 0.3, normalMap: TEX.gpoly.nrm, normalScale: new THREE.Vector2(0.3, 0.3), envMapIntensity: 1.1 }));
+}
 const gbox = (w, h, l) => { const k = `b${w},${h},${l}`; return gunGeoCache[k] || (gunGeoCache[k] = rbox(w, h, l, 0.09)); };
 const gcyl = (r1, r2, l, seg = 12, open = false) => {
   seg = Math.max(seg, 20); const k = `c${r1},${r2},${l},${seg},${open}`; if (gunGeoCache[k]) return gunGeoCache[k];
@@ -1398,11 +1476,13 @@ const GSPEC = {
 // 前後方向（z）に寝かせた、真ん中が原点のカプセル（画面に映る腕）。r0 が前（手首側）
 const zcapCache = {};
 function zcap(r0, r1, len) { const k = [r0, r1, len].join(); if (zcapCache[k]) return zcapCache[k]; const g = capsule(r0, r1, len).clone(); g.translate(0, len / 2, 0); g.rotateX(-Math.PI / 2); return (zcapCache[k] = g); }
-function buildGun(d, optic = 0, arms = false, sleeve = 0x3a4048) {
+function buildGun(d, optic = 0, arms = false, sleeve = 0x3a4048, sk = null) {
   const g = new THREE.Group(), m = d.model, cat = d.cat || 'AR';
   if (d.melee) { g.userData = { sightY: 0.02, muzzleZ: -0.2, eject: new V3() }; return g; }
-  const dark = gmat(0x2b2e34, 0.62, 0.25, 'poly'), mid = gmat(0x474c55, 0.4, 0.75, 'metal'), acc = gmat(m.col, 0.4, 0.35, 'paint'),
-    metal = gmat(0x9aa0a8, 0.26, 1.0, 'metal'), black = gmat(0x111215, 0.7, 0.2, 'poly'), glowM = gglow(m.col), wood = gmat(0x6a4426, 0.6, 0.05, 'poly');
+  // スキン：本体の色・アクセント・光るライン・迷彩・金属感を差し替える
+  const dark = sk ? (sk.camo ? camoMat(sk.body, sk.acc) : gmat(sk.body, sk.metal ? 0.3 : 0.6, sk.metal ? 0.85 : 0.25, sk.metal ? 'metal' : 'poly')) : gmat(0x2b2e34, 0.62, 0.25, 'poly'),
+    mid = gmat(sk ? shadeHex(sk.body, 1.45) : 0x474c55, 0.4, 0.75, 'metal'), acc = gmat(sk ? sk.acc : m.col, 0.4, sk && sk.metal ? 0.9 : 0.35, 'paint'),
+    metal = gmat(sk && sk.metal ? shadeHex(sk.acc, 0.9) : 0x9aa0a8, 0.26, 1.0, 'metal'), black = gmat(0x111215, 0.7, 0.2, 'poly'), glowM = gglow(sk && sk.glow ? sk.glow : m.col), wood = gmat(0x6a4426, 0.6, 0.05, 'poly');
   const add = (geo, mt, x, y, z, rx = 0, ry = 0, rz = 0) => { const me = new THREE.Mesh(geo, mt); me.position.set(x, y, z); me.rotation.set(rx, ry, rz); g.add(me); return me; };
   const prof = (pts, w, mt, x = 0, y = 0, z = 0, holes) => add(gprof(pts, w, holes), mt, x, y, z);
   const S = GSPEC[d.id] || { recv: 'ar', R: m.len * 0.4, h: m.h || 0.1, hg: 'rail', HG: m.len * 0.3, bl: m.barrel || 0.1, mag: m.pistol ? 'none' : 'straight', ml: 0.12, stock: 'solid' };
@@ -1467,7 +1547,7 @@ function buildGun(d, optic = 0, arms = false, sleeve = 0x3a4048) {
     for (const sx of [-1, 1]) {
       prof([[R * 0.18, -H * 0.42], [R * 0.82, -H * 0.42], [R * 0.78, -H * 0.06], [R * 0.22, -H * 0.06]], 0.004, acc, sx * (W / 2 + 0.0015));
       add(gbox(0.003, H * 0.7, 0.003), black, sx * (W / 2 + 0.001), 0, -R * 0.9);
-      if (S.glow) prof([[R * 0.3, H * 0.12], [R * 0.95, H * 0.12], [R * 0.95, H * 0.2], [R * 0.3, H * 0.2]], 0.003, glowM, sx * (W / 2 + 0.002));
+      if (S.glow || (sk && sk.glow)) prof([[R * 0.3, H * 0.12], [R * 0.95, H * 0.12], [R * 0.95, H * 0.2], [R * 0.3, H * 0.2]], 0.003, glowM, sx * (W / 2 + 0.002));
     }
     add(gbox(0.004, H * 0.3, R * 0.28), metal, W / 2 + 0.001, H * 0.15, -R * 0.35);                                              // 排莢口
     add(gbox(0.028, 0.012, 0.03), mid, 0, H / 2 + 0.002, 0.03);                                                                   // チャージングハンドル
@@ -2087,7 +2167,7 @@ function fire(d, s, now, power = 1) {
 }
 // 素手：前方 1.9m 以内の敵に 30 ダメージ
 function melee(now) {
-  W.lastShot = now; W.kick = 1;
+  W.lastShot = now; W.kick = 1; HEIR.swing = now; HEIR.until = now + 0.6; HEIR.idle = 0;
   camera.getWorldDirection(camF);
   let best = null, bd = 1.9;
   for (const t of targets()) {
@@ -3170,6 +3250,46 @@ throwItem = function (o) {
 };
 const LEG = Object.fromEntries(LEGENDS.map(l => [l.id, l]));
 const legend = () => LEG[settings.legend] || LEG.octane;
+// ================= スキン（キャラ・武器）と持ち物 =================
+// レア度は Apex と同じ 4 段階＋スパレジェ。キャラ・武器ごとにコモン／レア／エピック／レジェンダリーのスキンが 1 つずつある
+const RAR = { common: { n: 'コモン', c: '#b8b8b8', craft: 30, metal: 15, price: 300 }, rare: { n: 'レア', c: '#3fa0ff', craft: 60, metal: 30, price: 500 },
+  epic: { n: 'エピック', c: '#b04cff', craft: 400, metal: 200, price: 1000 }, legendary: { n: 'レジェンダリー', c: '#ffb21f', craft: 1200, metal: 600, price: 1800 },
+  heir: { n: 'スパレジェ', c: '#ff3b3b' } };
+const RAR_ORDER = ['common', 'rare', 'epic', 'legendary'];
+const SKIN_THEMES = {
+  common: [['サンド', 0xb8a27a, 0x6a5a40], ['オリーブ', 0x6a7040, 0x3a3a28], ['スレート', 0x6a727a, 0x3a4048], ['ブリック', 0x8a4a3a, 0x5a3028], ['チャコール', 0x3a3a3e, 0x8a8a90]],
+  rare: [['アイスブルー', 0x7ab8e8, 0x2a5a9a], ['クリムゾン', 0xa82a2a, 0x2a2a30], ['フォレスト', 0x2f6a3a, 0xc8b060], ['ローズ', 0xd87aa0, 0xf0e0e8], ['サンセット', 0xe08a3a, 0x7a2a5a], ['ミッドナイト', 0x1e2a4a, 0x8ab0ff]],
+  epic: [['ネオンパルス', 0x1a1c28, 0x30f0ff, { camo: 1 }], ['ブラッドムーン', 0x2a0e10, 0xff3030, { camo: 1 }], ['ディープシー', 0x0e2a3a, 0x40ffd0, { camo: 1, metal: 1 }],
+    ['ロイヤル', 0x3a1a5a, 0xffd060, { metal: 1 }], ['ジャングル', 0x2a3a1a, 0x9ad040, { camo: 1 }], ['アークティック', 0xdde6ee, 0x6a8aa8, { camo: 1 }]],
+  legendary: [['黄金の覇者', 0xc89a28, 0xfff0b0, { glow: 0xffc040, metal: 1 }], ['ヴォイドウォーカー', 0x120c1e, 0xb050ff, { glow: 0xb050ff }], ['サイバーパンク', 0x101418, 0xff2a9a, { glow: 0x30e0ff }],
+    ['インフェルノ', 0x2a1008, 0xff6a10, { glow: 0xff4a10 }], ['フロストバイト', 0xe8f4ff, 0x50b8ff, { glow: 0x80d8ff }], ['エメラルドドラゴン', 0x0e2a1a, 0x30ff8a, { glow: 0x30ff8a, metal: 1 }]],
+};
+const SKINS = {}, SKIN_LIST = [];
+const strHash = t => { let h = 7; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+const SKIN_WPNS = Object.keys(WDEFS).filter(id => !WDEFS[id].hidden && !WDEFS[id].melee);
+for (const [kind, ids] of [['L', LEGENDS.map(l => l.id)], ['W', SKIN_WPNS]]) for (const id of ids) for (const rar of RAR_ORDER) {
+  const th = SKIN_THEMES[rar], t = th[strHash(kind + id + rar) % th.length], o = t[3] || {};
+  // コモンの武器は迷彩なしの単色、エピックのキャラは迷彩を使わない（体には模様を貼れないので金属感で差をつける）
+  const sk = { id: kind + ':' + id + ':' + rar, kind, target: id, rar, name: t[0], body: t[1], acc: t[2], glow: o.glow || 0, metal: !!o.metal || (kind === 'L' && rar === 'epic'), camo: kind === 'W' && !!o.camo };
+  SKINS[sk.id] = sk; SKIN_LIST.push(sk);
+}
+// 汎用スパレジェ（どのレジェンドでも使える近接武器）
+const HEIRLOOM = { id: 'H:arcfang', name: 'アーク・ファング', rar: 'heir', cost: 150 };
+const skinTargetName = sk => sk.kind === 'L' ? (LEG[sk.target] ? LEG[sk.target].name : sk.target) : (WDEFS[sk.target] ? WDEFS[sk.target].name : sk.target);
+const INV = (() => { let v = null; try { v = JSON.parse(localStorage.getItem('apexfr_inv')); } catch (e) {}
+  // はじめての人へのプレゼント：コイン 1000・パック 5 個
+  return Object.assign({ coins: 1000, metals: 0, shards: 0, packs: 5, owned: [], eqL: {}, eqW: {}, heir: false, pityL: 0, pityH: 0, opened: 0, xp: 0, lvl: 1 }, v || {}); })();
+const saveInv = () => { try { localStorage.setItem('apexfr_inv', JSON.stringify(INV)); } catch (e) {} };
+const owns = id => id === HEIRLOOM.id ? INV.owned.includes(id) : INV.owned.includes(id);
+const eqSkinL = lid => INV.eqL[lid] && SKINS[INV.eqL[lid]] ? INV.eqL[lid] : null;
+const eqSkinW = wid => INV.eqW[wid] && SKINS[INV.eqW[wid]] ? SKINS[INV.eqW[wid]] : null;
+const heirOn = () => INV.heir && INV.owned.includes(HEIRLOOM.id);
+// Bot も半分くらいはスキンを着ている
+function botSkin(lid) {
+  if (Math.random() < 0.5) return null;
+  const r = Math.random(), rar = r < 0.35 ? 'common' : r < 0.7 ? 'rare' : r < 0.9 ? 'epic' : 'legendary';
+  return 'L:' + lid + ':' + rar;
+}
 
 function setLegend(id) {
   if (AB.drone && AB.drone.active) { P.yaw = P.saveYaw; P.pitch = P.savePitch; }
@@ -3226,6 +3346,27 @@ function lifelineDoc(dt) {
 // ================= ビューモデル =================
 const VM = { root: new THREE.Group(), gun: null, bob: 0, swayX: 0, swayY: 0, mdx: 0, mdy: 0, flash: null };
 vmScene.add(VM.root);
+// 汎用スパレジェ「アーク・ファング」：光る刃のナイフ。素手のとき・格闘のときに出る
+const HEIR = { swing: -9, until: -9, insp: -9, idle: 0 };
+function buildHeirloom() {
+  const g = new THREE.Group(), blade = new THREE.Group();
+  const dark = gmat(0x1a1a1e, 0.5, 0.6, 'metal'), gold = gmat(0xd8a830, 0.25, 1.0, 'metal'), core = gglow(0xff2a3a);
+  const add = (geo, mt, x, y, z, rx = 0, ry = 0, rz = 0, par = g) => { const me = new THREE.Mesh(geo, mt); me.position.set(x, y, z); me.rotation.set(rx, ry, rz); par.add(me); return me; };
+  add(gcyl(0.016, 0.018, 0.12, 20), dark, 0, -0.06, 0);                                                         // 柄
+  for (let k = 0; k < 3; k++) add(gcyl(0.02, 0.02, 0.008, 20), gold, 0, -0.105 + k * 0.035, 0);                // 金の輪
+  add(gbox(0.075, 0.016, 0.03), gold, 0, 0.004, 0);                                                              // つば
+  add(new THREE.SphereGeometry(0.022, 16, 12), gold, 0, -0.125, 0);
+  // 刃：外側は赤く光るエネルギー、内側に明るい芯
+  if (!HEIR.geo) {
+    const sh = new THREE.Shape(); sh.moveTo(-0.018, 0); sh.lineTo(0.018, 0); sh.lineTo(0.023, 0.08); sh.lineTo(0.011, 0.19); sh.lineTo(0, 0.235); sh.lineTo(-0.014, 0.16); sh.lineTo(-0.021, 0.07); sh.closePath();
+    HEIR.geo = new THREE.ExtrudeGeometry(sh, { depth: 0.005, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 1 }); HEIR.geo.translate(0, 0, -0.0025);
+  }
+  add(HEIR.geo, core, 0, 0.012, 0, 0, 0, 0, blade);
+  add(HEIR.geo, gglow(0xfff0f0), 0, 0.018, 0, 0, 0, 0, blade).scale.set(0.4, 0.88, 1.8);                      // 明るい芯
+  g.add(blade); g.userData.blade = blade;
+  return g;
+}
+VM.heir = buildHeirloom(); VM.heir.visible = false; VM.root.add(VM.heir);
 VM.flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: 0xffc770, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
 VM.flash.scale.setScalar(0.12);
 // 撃ったときに周りを一瞬照らす光
@@ -3252,7 +3393,8 @@ function setVMGun() {
   // 前の武器の状態（予約された自動リロードなど）を持ち越さない
   W.burstLeft = 0; W.drawT = 0; W.spin = 0; W.rampT = 0; W.autoReload = 0;
   if (VM.gun) VM.root.remove(VM.gun);
-  VM.gun = buildGun(def(), curOptic(), true, (LSTYLE[legend().id] || LSTYLE.bangalore)[0]); VM.root.add(VM.gun);
+  const ls = eqSkinL(legend().id);
+  VM.gun = buildGun(def(), curOptic(), true, ls ? SKINS[ls].body : (LSTYLE[legend().id] || LSTYLE.bangalore)[0], eqSkinW(def().id)); VM.root.add(VM.gun);
   VM.flash.position.set(0, 0.01, VM.gun.userData.muzzleZ - 0.03); VM.gun.add(VM.flash);
 }
 // 腰だめの構え：銃を右下に置き、少し内側に向けて右側面が見えるようにする（Apex の見え方）
@@ -3290,10 +3432,21 @@ function updateVM(dt) {
   rz += 0.14 * P.slideB;
   y -= P.landDip * 0.4;
   g.position.set(x, y, z); g.rotation.set(rx, ry, rz); g.scale.setScalar(0.88);
+  // スパレジェ：素手のとき、格闘したとき、N で眺めるときに出す
+  const tnow = nowS(), showH = heirOn() && (d.melee || tnow < HEIR.until);
+  g.visible = !showH; VM.heir.visible = showH;
+  if (showH) {
+    const h = VM.heir, sw = clamp((tnow - HEIR.swing) / 0.32, 0, 1), sa = sw < 1 ? Math.sin(sw * Math.PI) : 0, ip = clamp((tnow - HEIR.insp) / 2.2, 0, 1), ia = ip < 1 ? Math.sin(ip * Math.PI) : 0;
+    HEIR.idle = hs < 0.5 && sw >= 1 ? HEIR.idle + dt : 0;
+    const flair = HEIR.idle > 4 ? (HEIR.idle - 4) % 5 : 9;                                            // 止まっていると、ときどき手の中でくるっと回す
+    h.position.set(0.13 - sa * 0.22 - ia * 0.1 + VM.swayX, -0.115 + sa * 0.06 + ia * 0.05 + VM.swayY - P.sprintB * 0.03, -0.36 - sa * 0.08);
+    h.rotation.set(-0.5 - sa * 0.6 + ia * 0.3, 0.3 + ia * Math.sin(ip * 6) * 0.8, -0.35 + sa * 1.6 - ia * 0.4);
+    h.userData.blade.rotation.y = flair < 1 ? flair * Math.PI * 4 : ia * ip * Math.PI * 4;
+  }
   for (const op of g.userData.opticParts || []) op.visible = W.adsT < 0.55;
   const scoped = curOptic() === 4 && W.adsT > 0.85;
   VM.root.visible = !scoped && !P.travel && !hasBuff('void') && !(AB.drone && AB.drone.active)
-    && !P.inShip && !P.drop && !P.downed && !P.dead && !M.spectate && !d.melee;
+    && !P.inShip && !P.drop && !P.downed && !P.dead && !M.spectate && (!d.melee || heirOn());
   VM.flash.visible = W.flashT > 0;
   flashLight.position.copy(camera.position); flashLight.intensity = W.flashT > 0 ? 2.2 : 0;
   updateShells(dt);
@@ -3961,7 +4114,7 @@ function algsPlayerOut() {
 function algsGameEnd() {
   if (M.over) return;
   for (const sq of squads) if (!sq.eliminated) sq.place = 1;
-  recordMatch(squads[0].place);
+  recordMatch(squads[0].place); const rew = awardMatch(squads[0].place);
   M.over = true; M.ff = 0;
   const before = AL.teams.map(t => t.pts), last = [];
   squads.forEach((sq, i) => {
@@ -3980,7 +4133,7 @@ function algsGameEnd() {
   r.querySelector('h1').style.fontSize = AL.done ? '44px' : '56px';
   r.querySelector('p').innerHTML = `あなたのチーム #${me.place}　部隊キル ${me.kills}（あなた ${M.kills}）　獲得 +${last[0].pts} pt<br>`
     + `<span style="font-size:14px">${AL.format === 'mp' ? `マッチポイント形式：${ALGS_MP} pt に到達したチームが次に勝てば優勝` : `グループステージ ${AL.game} / ${ALGS_GAMES} 試合`}</span>`
-    + algsTable(algsOrder(), last);
+    + rew + algsTable(algsOrder(), last);
   $('#resultBtn').textContent = AL.done ? 'メニューに戻る' : '次の試合へ';
   setTimeout(() => { r.style.display = 'flex'; document.exitPointerLock(); }, 1500);
   if (winner === 0) sUlt();
@@ -4830,23 +4983,27 @@ function mergeByMaterial(root) {
 }
 // 関節付きの人型を作る（レジェンドごとに 1 回だけ作って複製する）。rig.joint に肩・肘・股・膝のピボットを持つ
 const humanoidTpl = {};
-function buildHumanoid(styleId, accentOverride) {
-  const key = styleId + ':' + (accentOverride || '');
-  if (!humanoidTpl[key]) humanoidTpl[key] = makeHumanoidTpl(styleId, accentOverride);
+function buildHumanoid(styleId, accentOverride, skinId) {
+  const key = styleId + ':' + (accentOverride || '') + ':' + (skinId || '');
+  if (!humanoidTpl[key]) humanoidTpl[key] = makeHumanoidTpl(styleId, accentOverride, SKINS[skinId]);
   const tpl = humanoidTpl[key], g = tpl.clone(true), inner = g.getObjectByName('inner');
   const rig = { inner, joint: {}, phase: Math.random() * 6, scale: tpl.userData.scale };
   for (const n of ['spine', 'neck', 'shR', 'shL', 'elR', 'elL', 'hipR', 'hipL', 'knR', 'knL']) rig.joint[n] = g.getObjectByName(n);
   rig.gun = g.getObjectByName('gun');
   return { g, inner, rig };
 }
-function makeHumanoidTpl(styleId, accentOverride) {
-  const [body, accentC, skin, scale] = LSTYLE[styleId] || LSTYLE.bangalore;
-  const lk = LOOK[styleId] || {}, accent = accentOverride || accentC, dark = 0x26282c;
+function makeHumanoidTpl(styleId, accentOverride, cs) {
+  let [body, accentC, skin, scale] = LSTYLE[styleId] || LSTYLE.bangalore;
+  if (cs) { body = cs.body; accentC = cs.acc; }
+  const lk = LOOK[styleId] || {}, accent = accentOverride || accentC, dark = cs ? shadeHex(cs.body, 0.45) : 0x26282c;
   const g = new THREE.Group(), inner = new THREE.Group(); inner.name = 'inner'; g.add(inner); inner.scale.setScalar(scale);
   g.userData.scale = scale;
   const part = (parent, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.scale.set(sx, sy, sz); m.castShadow = true; parent.add(m); return m; };
   const pivot = (parent, name, x, y, z) => { const p = new THREE.Group(); p.name = name; p.position.set(x, y, z); parent.add(p); return p; };
-  const B = cmat(body, 0.75, 0.05), A = cmat(accent, 0.45, 0.2), S = cmat(skin, 0.62, 0.0), D = cmat(dark, 0.55, 0.35), K = cmat(0x15161a, 0.6, 0.3);
+  const B = cmat(body, 0.75, 0.05), S = cmat(skin, 0.62, 0.0), D = cmat(dark, 0.55, 0.35), K = cmat(0x15161a, 0.6, 0.3);
+  // スキンのアクセント：エピックは金属っぽく、レジェンダリーは光る
+  const A = cs && (cs.glow || cs.metal) ? new THREE.MeshStandardMaterial({ color: accent, roughness: cs.metal ? 0.3 : 0.4, metalness: cs.metal ? 0.85 : 0.3,
+    emissive: cs.glow || 0, emissiveIntensity: cs.glow ? (POST ? 1.6 : 0.8) : 0, map: TEX.gpoly, normalMap: TEX.gpoly.nrm, normalScale: new THREE.Vector2(0.9, 0.9) }) : cmat(accent, 0.45, 0.2);
   const metal = cmat(0x8a9098, 0.35, 0.85), hairM = cmat(lk.hairCol || HAIR_COLS[styleId.length % HAIR_COLS.length], 0.8, 0.0);
   const robot = !!lk.robot, skel = !!lk.skel, bulk = lk.bulk || 1, slim = lk.slim ? 0.9 : 1;
   const limbM = robot || skel ? (skel ? cmat(0x3a3436, 0.5, 0.6) : metal) : B;
@@ -4967,7 +5124,7 @@ function animRig(rig, speed, dt, pose) {
 }
 function makeBot(team, legendId) {
   const L = LEG[legendId];
-  const { g, inner, rig } = buildHumanoid(legendId);
+  const { g, inner, rig } = buildHumanoid(legendId, null, botSkin(legendId));
   scene.add(g);
   const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: revealTex, depthTest: false, transparent: true }));
   mark.position.y = 2.3; mark.scale.setScalar(0.4); mark.renderOrder = 999; mark.visible = false; g.add(mark);
@@ -6156,13 +6313,13 @@ function addFeed(killer, weapon, victim, kind, victimTeam) {
 }
 function gameOver(win, place) {
   if (M.over) return;
-  recordMatch(place);
+  recordMatch(place); const rew = awardMatch(place);
   M.over = true;
   const r = $('#result');
   r.querySelector('h1').textContent = win ? 'チャンピオン' : '部隊全滅';
   r.querySelector('h1').className = win ? 'win' : '';
   r.querySelector('p').innerHTML = `順位 <b>#${place}</b> / 20<br>キル ${M.kills}　アシスト ${M.assists}　与ダメージ ${Math.round(M.dmg)}<br>生存時間 ${Math.floor(M.t / 60)}:${String(Math.floor(M.t % 60)).padStart(2, '0')}`
-    + (M.kind === 'ranked' ? '<br>' + rankedFinish(place) : '');
+    + (M.kind === 'ranked' ? '<br>' + rankedFinish(place) : '') + rew;
   setTimeout(() => { r.style.display = 'flex'; document.exitPointerLock(); }, win ? 1500 : 2500);
   if (win) sUlt();
 }
@@ -6209,7 +6366,7 @@ function startMatch(kind = 'casual') {
     squads.push(sq);
   }
   agents = [PLAYER_AGENT, ...bots];
-  M.pmodel = buildHumanoid(settings.legend); scene.add(M.pmodel.g); M.pmodel.g.visible = false;
+  M.pmodel = buildHumanoid(settings.legend, null, eqSkinL(settings.legend)); scene.add(M.pmodel.g); M.pmodel.g.visible = false;
   M.squadsLeft = 20;
   initShip(); initRing();
   P.inShip = true; P.drop = false; P.dead = false; P.downed = false; P.hp = 100; P.sh = 0; P.shMax = 0; P.armor = 0; P.over = 0;
@@ -6643,6 +6800,8 @@ function doKey(code) {
     case 'KeyM': if (MODE === 'match') M.mapOpen = !M.mapOpen; break;
     case 'Tab': openInv(); break;
     case 'KeyG': throwNade(); break;
+    case 'KeyB': if (!P.dead && !P.downed && !P.inShip && !P.drop && nowS() > (PAD.meleeT || 0)) { PAD.meleeT = nowS() + 0.65; melee(nowS()); } break;
+    case 'KeyN': if (heirOn() && !P.dead && !P.downed) { HEIR.insp = nowS(); HEIR.until = nowS() + 2.3; } break;
     case 'KeyF': if (MODE === 'match' && P.dead && !M.over) { M.ff = M.ff > 1 ? 1 : 12; toast(M.ff > 1 ? '早送り ×12' : '等速'); } break;
     case 'Digit7': cycleNade(); break;
     case 'ShiftLeft': case 'ShiftRight': case 'KeyC': P.crouchEdge = true; break;
@@ -6963,6 +7122,235 @@ addEventListener('mousemove', e => {
   P.pitch = clamp(P.pitch - e.movementY * s * DEG, -89 * DEG, 89 * DEG);
   VM.mdx += e.movementX; VM.mdy += e.movementY;
 });
+
+// ================= ストア・Apex パック・ロッカー =================
+// 試合の報酬：Apex コインと経験値（レベルが上がるたびに Apex パック 1 個）
+function awardMatch(place) {
+  if (MODE !== 'match' || M.rewarded) return '';
+  M.rewarded = true;
+  const k = M.kills || 0, dmg = M.dmg || 0, pl = place || 20;
+  const coins = 20 + k * 10 + Math.floor(dmg / 100) * 5 + (pl === 1 ? 150 : pl <= 3 ? 80 : pl <= 5 ? 50 : pl <= 10 ? 25 : 0);
+  const xp = Math.round(250 + k * 150 + dmg * 0.6 + (21 - pl) * 25);
+  INV.coins += coins; INV.xp += xp; let ups = 0;
+  while (INV.xp >= 1000) { INV.xp -= 1000; INV.lvl++; INV.packs++; ups++; }
+  saveInv();
+  return `<div class="rp" style="margin-top:8px">🪙 Apex コイン <b>+${coins}</b>（${INV.coins}）　⭐ 経験値 +${xp}` + (ups ? `<br>🎉 レベル ${INV.lvl}！ <b>Apex パック +${ups}</b>` : `<br>レベル ${INV.lvl}（次まで ${1000 - INV.xp}）`) + '</div>';
+}
+// ---- Apex パック（本家の仕様）----
+// ・1 パックにアイテム 3 つ。そのうち 1 つはレア以上が確定
+// ・1 パックでレジェンダリーが出る確率 7.4%、エピック 24.8%
+// ・30 パック以内にレジェンダリー確定（出たら数え直し）
+// ・スパレジェシャード 150 個：約 0.2%、500 パック目で確定
+// ・持っているアイテムは出ない（重複なし）。そのレア度を全部持っていたらクラフトメタル
+function grantItem(rar) {
+  if (Math.random() < 0.12) { INV.metals += RAR[rar].metal; return { rar, metal: RAR[rar].metal }; }
+  const pool = SKIN_LIST.filter(sk => sk.rar === rar && !INV.owned.includes(sk.id));
+  if (!pool.length) { INV.metals += RAR[rar].metal; return { rar, metal: RAR[rar].metal, dup: true }; }
+  const sk = pick(pool); INV.owned.push(sk.id); return { rar, skin: sk };
+}
+function openPack() {
+  if (INV.packs <= 0) return null;
+  INV.packs--; INV.opened++; INV.pityL++; INV.pityH++;
+  const out = [];
+  if (INV.pityH >= 500 || Math.random() < 0.002) { INV.pityH = 0; INV.shards += 150; out.push({ rar: 'heir', shards: 150 }); }
+  const r = Math.random(), top = INV.pityL >= 30 || r < 0.074 ? 'legendary' : r < 0.074 + 0.248 ? 'epic' : 'rare';
+  if (top === 'legendary') INV.pityL = 0;
+  out.push(grantItem(top));
+  while (out.length < 3) out.push(grantItem(Math.random() < 0.78 ? 'common' : 'rare'));
+  // 並びは本家と同じく低いレア度から（最後にいちばんいいもの）
+  const ord = { common: 0, rare: 1, epic: 2, legendary: 3, heir: 4 }; out.sort((a, b) => ord[a.rar] - ord[b.rar]);
+  saveInv();
+  return out;
+}
+// スキンの見本（色の帯）
+function swatch(sk) {
+  if (!sk) return '<div class="sw" style="background:linear-gradient(135deg,#ff3b3b,#2a0a0e 60%,#d8a830)"></div>';
+  const h = c => '#' + c.toString(16).padStart(6, '0');
+  const glow = sk.glow ? `box-shadow:inset 0 0 18px ${h(sk.glow)};` : '';
+  const pat = sk.camo ? `,radial-gradient(circle at 30% 40%,${h(sk.acc)} 0 18%,transparent 19%),radial-gradient(circle at 70% 70%,${h(shadeHex(sk.body, 0.6))} 0 22%,transparent 23%)` : '';
+  return `<div class="sw" style="${glow}background:linear-gradient(120deg,transparent 55%,${h(sk.acc)} 56% 70%,transparent 71%)${pat},linear-gradient(135deg,${h(sk.body)},${h(shadeHex(sk.body, 0.55))})"></div>`;
+}
+const featuredToday = () => {
+  // ストアのおすすめ：日替わり（同じ日はみんな同じ）
+  let sd = Math.floor(Date.now() / 864e5) * 9301 + 49297; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const pickN = (list, n) => { const a = list.slice(), o = []; while (o.length < n && a.length) o.push(a.splice(Math.floor(rnd() * a.length), 1)[0]); return o; };
+  return [...pickN(SKIN_LIST.filter(x => x.rar === 'legendary' && x.kind === 'L'), 2), ...pickN(SKIN_LIST.filter(x => x.rar === 'legendary' && x.kind === 'W'), 2),
+    ...pickN(SKIN_LIST.filter(x => x.rar === 'epic'), 4)];
+};
+let cosTab = 'store', lockKind = 'L', lockTarget = null, lockSel = null;
+function cosCurrency() {
+  $('#cos .cur').innerHTML = `<span>🪙 Apex コイン<b>${INV.coins}</b></span><span>⚙ クラフトメタル<b>${INV.metals}</b></span><span style="color:#ff6a6a">◆ スパレジェシャード<b>${INV.shards}</b></span><span>📦 パック<b>${INV.packs}</b></span><span>Lv <b>${INV.lvl}</b></span>`;
+}
+function openCos(tab) {
+  cosTab = tab || cosTab; $('#cos').classList.add('open'); renderCos();
+}
+function closeCos() { $('#cos').classList.remove('open'); cosPreviewStop(); }
+function itemCard(sk, extra, on) {
+  const rc = sk ? RAR[sk.rar].c : RAR.heir.c;
+  return `<div class="citem${on ? ' on' : ''}" style="--rc:${rc}" data-id="${sk ? sk.id : HEIRLOOM.id}">${swatch(sk)}<div class="rr">${sk ? RAR[sk.rar].n : 'スパレジェ'}</div>`
+    + `<div class="nm">${sk ? skinTargetName(sk) + '<br>' + sk.name : HEIRLOOM.name + '<br><small>汎用（全レジェンド）</small>'}</div><div class="pr">${extra || ''}</div></div>`;
+}
+function renderCos() {
+  for (const b of document.querySelectorAll('#cos .ctab')) b.classList.toggle('on', b.dataset.t === cosTab);
+  cosCurrency(); const el = $('#cosBody');
+  if (cosTab !== 'locker') cosPreviewStop();
+  if (cosTab === 'store') {
+    const hOwn = owns(HEIRLOOM.id);
+    el.innerHTML = `<h3>スパレジェ（汎用）</h3><div class="cgrid">${itemCard(null, hOwn ? '所持済み' : `◆ ${HEIRLOOM.cost} シャード`)}</div>`
+      + `<div class="cnote">どのレジェンドでも使える近接武器。素手のときや格闘（PC：<kbd>B</kbd>、パッド：十字↓）で出て、<kbd>N</kbd> で眺められます。スパレジェシャードは Apex パックから出ます（500 パック目で確定）。</div>`
+      + `<h3>おすすめ（日替わり）</h3><div class="cgrid">${featuredToday().map(sk => itemCard(sk, owns(sk.id) ? '所持済み' : `🪙 ${RAR[sk.rar].price}`)).join('')}</div>`
+      + `<h3>Apex パック</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="cbtn" id="buy1">パック 1 個　🪙 100</button><button class="cbtn" id="buy10">パック 10 個　🪙 1000</button></div>`
+      + `<div class="cnote" style="margin-top:8px">Apex コインは試合で手に入ります（キル・ダメージ・順位）。レベルが上がるたびに Apex パックが 1 個もらえます。お金は一切かかりません。</div>`;
+    el.querySelectorAll('.citem').forEach(c => c.addEventListener('click', () => buyItem(c.dataset.id)));
+    $('#buy1').onclick = () => buyPacks(1); $('#buy10').onclick = () => buyPacks(10);
+  } else if (cosTab === 'packs') {
+    el.innerHTML = `<div id="packStage"><div class="apack">APEX</div></div>`
+      + `<div style="text-align:center"><button class="cbtn" id="packOpen"${INV.packs ? '' : ' disabled'}>パックを開ける（残り ${INV.packs}）</button></div>`
+      + `<div class="cnote" style="margin-top:10px">${packNote()}</div>`;
+    $('#packOpen').onclick = runPack;
+  } else {
+    el.innerHTML = `<div id="lockWrap"><div><canvas id="cosCv"></canvas><div class="cnote" id="lockInfo"></div></div><div>`
+      + `<div id="lockSel"><button class="ctab${lockKind === 'L' ? ' on' : ''}" data-k="L">レジェンド</button><button class="ctab${lockKind === 'W' ? ' on' : ''}" data-k="W">武器</button><button class="ctab${lockKind === 'H' ? ' on' : ''}" data-k="H">スパレジェ</button> <select id="lockTgt"></select></div>`
+      + `<div class="cgrid" id="lockGrid"></div><div class="cnote" style="margin-top:8px">持っていないスキンはクラフトメタルで作れます（コモン 30・レア 60・エピック 400・レジェンダリー 1200）。</div></div></div>`;
+    el.querySelectorAll('#lockSel .ctab').forEach(b => b.addEventListener('click', () => { lockKind = b.dataset.k; lockTarget = null; lockSel = null; renderCos(); }));
+    renderLocker();
+  }
+}
+function renderLocker() {
+  const tg = $('#lockTgt'), grid = $('#lockGrid');
+  if (lockKind === 'H') {
+    tg.style.display = 'none';
+    const own = owns(HEIRLOOM.id);
+    grid.innerHTML = `<div class="citem${!INV.heir ? ' on' : ''}" style="--rc:#666" data-id="none"><div class="sw" style="background:#2a2a30"></div><div class="nm">なし（素手）</div><div class="pr">${!INV.heir ? '装備中' : '装備する'}</div></div>`
+      + itemCard(null, own ? (INV.heir ? '装備中' : '装備する') : 'ストアで交換', INV.heir && own);
+    grid.querySelectorAll('.citem').forEach(c => c.addEventListener('click', () => {
+      if (c.dataset.id === 'none') INV.heir = false; else if (own) INV.heir = true; else { cosTab = 'store'; renderCos(); return; }
+      saveInv(); renderLocker(); }));
+    cosPreview('H'); $('#lockInfo').innerHTML = own ? `<b style="color:#ff6a6a">${HEIRLOOM.name}</b>　素手・格闘（<kbd>B</kbd>）で出ます。<kbd>N</kbd> で眺める。` : 'まだ持っていません（スパレジェシャード 150 個でストアから交換）';
+    return;
+  }
+  tg.style.display = '';
+  const list = lockKind === 'L' ? LEGENDS.map(l => [l.id, l.name]) : SKIN_WPNS.map(id => [id, WDEFS[id].name]);
+  if (!lockTarget) lockTarget = lockKind === 'L' ? settings.legend : (slots && slots[cur] && WDEFS[slots[cur].id] && !WDEFS[slots[cur].id].melee ? slots[cur].id : 'r301');
+  tg.innerHTML = list.map(([id, n]) => `<option value="${id}"${id === lockTarget ? ' selected' : ''}>${n}</option>`).join('');
+  tg.onchange = () => { lockTarget = tg.value; lockSel = null; renderLocker(); };
+  const eq = lockKind === 'L' ? INV.eqL[lockTarget] || null : INV.eqW[lockTarget] || null;
+  if (lockSel === null) lockSel = eq || 'none';
+  const skins = SKIN_LIST.filter(sk => sk.kind === lockKind && sk.target === lockTarget);
+  grid.innerHTML = `<div class="citem${lockSel === 'none' ? ' on' : ''}" style="--rc:#666" data-id="none"><div class="sw" style="background:#2a2a30"></div><div class="rr" style="color:#aaa">標準</div><div class="nm">いつもの見た目</div><div class="pr">${!eq ? '装備中' : '装備する'}</div></div>`
+    + skins.map(sk => itemCard(sk, owns(sk.id) ? (eq === sk.id ? '装備中' : '装備する') : `🔒 ⚙ ${RAR[sk.rar].craft} で作る`, lockSel === sk.id)).join('');
+  grid.querySelectorAll('.citem').forEach(c => c.addEventListener('click', () => {
+    const id = c.dataset.id, sk = SKINS[id];
+    if (lockSel !== id) { lockSel = id; renderLocker(); return; }      // 1 回目のタップは見るだけ、2 回目で装備・クラフト
+    if (id === 'none' || owns(id)) { const tab = lockKind === 'L' ? INV.eqL : INV.eqW; if (id === 'none') delete tab[lockTarget]; else tab[lockTarget] = id; saveInv(); applyCosmetics(); toast(id === 'none' ? '標準の見た目にしました' : sk.name + ' を装備しました'); }
+    else if (INV.metals >= RAR[sk.rar].craft) { if (confirm(`${skinTargetName(sk)}「${sk.name}」をクラフトメタル ${RAR[sk.rar].craft} で作りますか？`)) { INV.metals -= RAR[sk.rar].craft; INV.owned.push(id); saveInv(); toast('クラフトしました'); } }
+    else toast('クラフトメタルが足りません');
+    cosCurrency(); renderLocker();
+  }));
+  const sel = lockSel === 'none' ? null : SKINS[lockSel];
+  cosPreview(lockKind, lockTarget, sel);
+  $('#lockInfo').innerHTML = sel ? `<b style="color:${RAR[sel.rar].c}">${RAR[sel.rar].n}</b>　${skinTargetName(sel)}「${sel.name}」${owns(sel.id) ? '' : '（未所持：もう一度タップでクラフト）'}` : '標準の見た目';
+}
+function buyItem(id) {
+  if (id === HEIRLOOM.id) {
+    if (owns(id)) { cosTab = 'locker'; lockKind = 'H'; renderCos(); return; }
+    if (INV.shards < HEIRLOOM.cost) { toast(`スパレジェシャードが足りません（${INV.shards} / ${HEIRLOOM.cost}）`); return; }
+    if (!confirm(`スパレジェシャード ${HEIRLOOM.cost} 個で「${HEIRLOOM.name}」と交換しますか？`)) return;
+    INV.shards -= HEIRLOOM.cost; INV.owned.push(id); INV.heir = true; saveInv(); toast('スパレジェを手に入れました！'); renderCos(); return;
+  }
+  const sk = SKINS[id]; if (!sk) return;
+  if (owns(id)) { cosTab = 'locker'; lockKind = sk.kind; lockTarget = sk.target; lockSel = id; renderCos(); return; }
+  const pr = RAR[sk.rar].price;
+  if (INV.coins < pr) { toast(`Apex コインが足りません（${INV.coins} / ${pr}）`); return; }
+  if (!confirm(`${skinTargetName(sk)}「${sk.name}」を 🪙 ${pr} で買いますか？`)) return;
+  INV.coins -= pr; INV.owned.push(id); saveInv(); toast('購入しました（ロッカーで装備できます）'); renderCos();
+}
+function buyPacks(n) {
+  const pr = n * 100; if (INV.coins < pr) { toast(`Apex コインが足りません（${INV.coins} / ${pr}）`); return; }
+  INV.coins -= pr; INV.packs += n; saveInv(); toast(`Apex パック +${n}`); cosTab = 'packs'; renderCos();
+}
+const packNote = () => `【Apex パックの中身】アイテム 3 つ（レア以上 1 つ確定）。1 パックあたり：レジェンダリー 7.4%・エピック 24.8%。<br>`
+  + `レジェンダリー確定まで あと <b>${30 - INV.pityL}</b> パック。スパレジェシャード（150 個）は約 0.2%、確定まで あと <b>${500 - INV.pityH}</b> パック。<br>`
+  + `持っているスキンは出ません（そのレア度を全部持っているとクラフトメタルになります）。これまでに開けたパック：${INV.opened}`;
+let packBusy = false;
+function runPack() {
+  if (packBusy) return; const res = openPack(); if (!res) return;
+  packBusy = true; cosCurrency(); $('#packOpen').disabled = true;
+  const st = $('#packStage'), best = res[res.length - 1].rar;
+  st.innerHTML = `<div class="apack shake" style="${best === 'legendary' ? 'box-shadow:0 0 60px #ffb21f' : best === 'heir' ? 'box-shadow:0 0 70px #ff3b3b' : ''}">APEX</div>`;
+  if (AC) noise(AC.currentTime, 0.5, 'bandpass', 600, 1, 0.15);
+  setTimeout(() => {
+    st.innerHTML = res.map(it => {
+      const sk = it.skin, rc = RAR[it.rar].c;
+      const front = it.rar === 'heir' ? `<div class="sw" style="background:radial-gradient(#ff3b3b,#2a0a0e)"></div><div class="rr">スパレジェ</div><b>スパレジェシャード ×${it.shards}</b><div class="nw">ストアでスパレジェと交換できます</div>`
+        : sk ? `${swatch(sk)}<div class="rr">${RAR[it.rar].n}</div><b>${skinTargetName(sk)}<br>${sk.name}</b><div class="nw">NEW　${sk.kind === 'L' ? 'レジェンドスキン' : '武器スキン'}</div>`
+        : `<div class="sw" style="background:linear-gradient(135deg,#9aa0a8,#4a4e56)"></div><div class="rr">${RAR[it.rar].n}</div><b>クラフトメタル ×${it.metal}</b><div class="nw">${it.dup ? 'このレア度は全部持っています' : ''}</div>`;
+      return `<div class="pcard${it.rar === 'legendary' || it.rar === 'heir' ? ' leg' : ''}" style="--rc:${rc}"><div class="in"><div class="fr">${front}</div><div class="bk"></div></div></div>`;
+    }).join('');
+    // 1 枚ずつめくる（最後がいちばんいいもの）
+    [...st.children].forEach((c, i) => setTimeout(() => {
+      c.classList.add('flip');
+      const r = res[i].rar; if (AC) noise(AC.currentTime, r === 'legendary' || r === 'heir' ? 0.6 : 0.15, 'bandpass', r === 'legendary' || r === 'heir' ? 2400 : 1400, 1, r === 'common' ? 0.06 : 0.14);
+      if (i === st.children.length - 1) { packBusy = false; renderPackFoot(); }
+    }, 400 + i * 650));
+  }, 750);
+}
+function renderPackFoot() {
+  cosCurrency(); const b = $('#packOpen'); if (!b) return;
+  b.disabled = !INV.packs; b.textContent = `パックを開ける（残り ${INV.packs}）`;
+  const nt = document.querySelector('#cosBody .cnote'); if (nt) nt.innerHTML = packNote();
+}
+// 見た目の変更をすぐに反映（手元の武器・腕）
+function applyCosmetics() { try { if (VM.gun) setVMGun(); } catch (e) {} }
+// ロッカーの 3D の見本（ゲームとは別の小さい画面）
+let CPV = null;
+function cosPreview(kind, target, sk) {
+  const cv = $('#cosCv'); if (!cv) return;
+  if (!CPV || CPV.cv !== cv) {
+    if (CPV) CPV.r.dispose();
+    const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+    r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.1; r.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+    const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(32, 1, 0.05, 50);
+    sc.add(new THREE.HemisphereLight(0xdde8ff, 0x302820, 1.1));
+    const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2, 3, -3); sc.add(key);
+    const rim = new THREE.DirectionalLight(0x88aaff, 1.4); rim.position.set(-3, 2, 3); sc.add(rim);
+    if (scene.environment) sc.environment = scene.environment;
+    CPV = { cv, r, sc, cam, obj: null, raf: 0, t: 0 };
+  }
+  if (CPV.obj) CPV.sc.remove(CPV.obj);
+  let o;
+  if (kind === 'L') {
+    const h = buildHumanoid(target, null, sk ? sk.id : null); o = h.g;
+    const wid = 'r301', gun = buildGun(WDEFS[wid], 0, false, 0, eqSkinW(wid)); h.rig.gun.add(gun);
+    animRig(h.rig, 0, 0.016, 'stand');
+    CPV.cam.position.set(0, 1.25, -4.4); CPV.cam.lookAt(0, 0.95, 0);
+  } else if (kind === 'W') {
+    o = new THREE.Group(); const gun = buildGun(WDEFS[target], 0, false, 0, sk); gun.rotation.y = Math.PI / 2;
+    // 武器の長さに合わせて大きさをそろえる
+    let bb = new THREE.Box3().setFromObject(gun); const sz = bb.getSize(new V3()); gun.scale.setScalar(1.9 / Math.max(sz.x, sz.z, 0.3));
+    bb = new THREE.Box3().setFromObject(gun); gun.position.sub(bb.getCenter(new V3())); o.add(gun);
+    CPV.cam.position.set(0, 0.3, -3.6); CPV.cam.lookAt(0, 0, 0);
+  } else {
+    o = new THREE.Group(); const hh = buildHeirloom(); hh.scale.setScalar(4); hh.rotation.z = -0.45; hh.position.set(-0.15, -0.35, 0); o.add(hh);
+    CPV.cam.position.set(0, 0.2, -3); CPV.cam.lookAt(0, 0.1, 0);
+  }
+  CPV.obj = o; CPV.sc.add(o);
+  if (!CPV.raf) { const loop = () => {
+    if (!CPV || !$('#cos').classList.contains('open')) { if (CPV) CPV.raf = 0; return; }
+    const w = CPV.cv.clientWidth, h = CPV.cv.clientHeight;
+    if (w && h && (CPV.cv.width !== Math.round(w * CPV.r.getPixelRatio()) || CPV.cv.height !== Math.round(h * CPV.r.getPixelRatio()))) { CPV.r.setSize(w, h, false); CPV.cam.aspect = w / h; CPV.cam.updateProjectionMatrix(); }
+    CPV.t += 0.016; if (CPV.obj) CPV.obj.rotation.y = Math.sin(CPV.t * 0.5) * 0.8;
+    CPV.r.render(CPV.sc, CPV.cam); CPV.raf = requestAnimationFrame(loop);
+  }; CPV.raf = requestAnimationFrame(loop); }
+}
+function cosPreviewStop() { if (CPV && CPV.raf) { cancelAnimationFrame(CPV.raf); CPV.raf = 0; } }
+document.querySelectorAll('#cos .ctab').forEach(b => b.addEventListener('click', () => { cosTab = b.dataset.t; renderCos(); }));
+$('#cosClose').addEventListener('click', closeCos);
+$('#openStore').addEventListener('click', () => openCos('store'));
+$('#openPacks').addEventListener('click', () => openCos('packs'));
+$('#openLocker').addEventListener('click', () => { lockTarget = null; lockSel = null; openCos('locker'); });
+const updPackBtn = () => { $('#openPacks').textContent = `📦 Apex パック（${INV.packs}）`; };
+updPackBtn(); setInterval(updPackBtn, 1000);
 
 // ================= メニュー（レジェンド選択） =================
 function buildLegendMenu() {
