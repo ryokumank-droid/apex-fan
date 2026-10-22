@@ -6663,7 +6663,7 @@ function recordMatch(place) {
   const weapons = Object.entries(M.wpnTime || {}).filter(([, t]) => t >= 10).sort((a, b) => b[1] - a[1]).map(([id]) => id);
   const row = { name: PLAYER_NAME, mode: M.kind, legend: settings.legend, weapons, kills: M.kills || 0, place: place ?? null, device: TOUCH ? 'スマホ' : 'PC' };
   // Bot の使用状況：1 体ごとに「L:キャラ」、10 秒以上持っていた武器ごとに「W:武器」を並べて 1 行にまとめる
-  const items = ['S:' + SEASON];   // どのシーズンの記録か
+  const items = ['S:' + STAT_TAG];   // どのシーズンの記録か
   for (const b of bots) {
     items.push('L:' + b.legend.id);
     for (const [wid, wt] of Object.entries(b.wpnTime || {})) if (wt >= 10) items.push('W:' + wid);
@@ -6705,8 +6705,9 @@ function renderLoginLog() {
 //  ・カジュアル／ランクは全部隊に 1 人環境キャラ（META_LEGEND）、ALGS はオルター／ジブラルタル／ニューキャッスル
 //  ・キャラは強いティアほど選ばれやすい。武器は床の武器から 0〜2 丁拾い、上のティアが見つかれば持ち替える（実際の試合に合わせてある）
 // シーズン：上げると使用率の集計が 0 からやり直しになる（前のシーズンの記録は消さずに残し、数えないだけ）
-const SEASON = 1;
-const SIM_KEY = 'apexfr_botsim_s' + SEASON, SIM_SEEN = 8;
+// STAT_TAG は集計のくぎり。シーズンの途中で数え直すときはこちらだけ変える（表示はシーズン番号のまま）
+const SEASON = 1, STAT_TAG = '1r2';
+const SIM_KEY = 'apexfr_botsim_s' + STAT_TAG, SIM_SEEN = 8;
 let simAgg = (() => { try { return JSON.parse(localStorage.getItem(SIM_KEY)) || null; } catch (e) { return null; } })() || { n: 0, last: Date.now(), modes: {} };
 function simBotMatch() {
   const r = Math.random(), mode = r < 0.55 ? 'casual' : r < 0.9 ? 'ranked' : 'algs';
@@ -6749,7 +6750,7 @@ function renderUseStats(rows) {
   if (rows) useRows = rows;
   const el = $('#useStats'); if (!el) return;
   // Bot の記録だけを使う（mode が bot:モード名）＋ Bot だけの試合（計算）
-  const list = (useRows || []).filter(r => String(r.mode || '').startsWith('bot:') && (useMode === 'all' || r.mode === 'bot:' + useMode) && (r.weapons || []).includes('S:' + SEASON));
+  const list = (useRows || []).filter(r => String(r.mode || '').startsWith('bot:') && (useMode === 'all' || r.mode === 'bot:' + useMode) && (r.weapons || []).includes('S:' + STAT_TAG));
   const lc = {}, wc = {}; let nb = 0, sm = 0;
   for (const r of list) for (const it of r.weapons || []) {
     if (it.startsWith('L:')) { nb++; lc[it.slice(2)] = (lc[it.slice(2)] || 0) + 1; }
