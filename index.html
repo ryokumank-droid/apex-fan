@@ -6837,6 +6837,12 @@ addEventListener('keydown', e => {
     toast(`+100 RP → ${RK.rp} RP（${rankOf(RK.rp).name}）`); renderModeInfo();
     return;
   }
+  // @ キー：スパレジェシャード +150（日本語キーボードの @ は BracketLeft なので、パッド感度より先に見る）
+  if (e.key === '@' && !e.repeat && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) {
+    INV.shards += 150; saveInv(); toast(`スパレジェシャード +150 → ${INV.shards}`);
+    if ($('#cos').classList.contains('open')) renderCos();
+    e.preventDefault(); return;
+  }
   if (['BracketLeft', 'BracketRight', 'Minus', 'Equal'].includes(e.code) && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) {
     if (e.code === 'BracketLeft' || e.code === 'BracketRight') { settings.padSens = clamp((settings.padSens ?? 4) + (e.code === 'BracketRight' ? 0.5 : -0.5), 1, 10); toast('パッド感度 ' + settings.padSens); }
     else { settings.padDz = clamp(Math.round(((settings.padDz || 0) + (e.code === 'Equal' ? 0.01 : -0.01)) * 100) / 100, 0, 0.3); toast('右スティックのデッドゾーン ' + settings.padDz.toFixed(2)); }
