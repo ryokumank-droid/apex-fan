@@ -6663,7 +6663,7 @@ function recordMatch(place) {
   const weapons = Object.entries(M.wpnTime || {}).filter(([, t]) => t >= 10).sort((a, b) => b[1] - a[1]).map(([id]) => id);
   const row = { name: PLAYER_NAME, mode: M.kind, legend: settings.legend, weapons, kills: M.kills || 0, place: place ?? null, device: TOUCH ? 'スマホ' : 'PC' };
   // Bot の使用状況：1 体ごとに「L:キャラ」、10 秒以上持っていた武器ごとに「W:武器」を並べて 1 行にまとめる
-  const items = [];
+  const items = ['S:' + SEASON];   // どのシーズンの記録か
   for (const b of bots) {
     items.push('L:' + b.legend.id);
     for (const [wid, wt] of Object.entries(b.wpnTime || {})) if (wt >= 10) items.push('W:' + wid);
@@ -6704,7 +6704,9 @@ function renderLoginLog() {
 // 3D の試合は回さず、ゲームと同じルールで「誰がどのキャラで、どの武器を持っていたか」だけを決める：
 //  ・カジュアル／ランクは全部隊に 1 人環境キャラ（META_LEGEND）、ALGS はオルター／ジブラルタル／ニューキャッスル
 //  ・キャラは強いティアほど選ばれやすい。武器は床の武器から 0〜2 丁拾い、上のティアが見つかれば持ち替える（実際の試合に合わせてある）
-const SIM_KEY = 'apexfr_botsim2', SIM_SEEN = 8;   // ルールを変えたので記録は新しく取り直す
+// シーズン：上げると使用率の集計が 0 からやり直しになる（前のシーズンの記録は消さずに残し、数えないだけ）
+const SEASON = 1;
+const SIM_KEY = 'apexfr_botsim_s' + SEASON, SIM_SEEN = 8;
 let simAgg = (() => { try { return JSON.parse(localStorage.getItem(SIM_KEY)) || null; } catch (e) { return null; } })() || { n: 0, last: Date.now(), modes: {} };
 function simBotMatch() {
   const r = Math.random(), mode = r < 0.55 ? 'casual' : r < 0.9 ? 'ranked' : 'algs';
@@ -6747,7 +6749,7 @@ function renderUseStats(rows) {
   if (rows) useRows = rows;
   const el = $('#useStats'); if (!el) return;
   // Bot の記録だけを使う（mode が bot:モード名）＋ Bot だけの試合（計算）
-  const list = (useRows || []).filter(r => String(r.mode || '').startsWith('bot:') && (useMode === 'all' || r.mode === 'bot:' + useMode));
+  const list = (useRows || []).filter(r => String(r.mode || '').startsWith('bot:') && (useMode === 'all' || r.mode === 'bot:' + useMode) && (r.weapons || []).includes('S:' + SEASON));
   const lc = {}, wc = {}; let nb = 0, sm = 0;
   for (const r of list) for (const it of r.weapons || []) {
     if (it.startsWith('L:')) { nb++; lc[it.slice(2)] = (lc[it.slice(2)] || 0) + 1; }
@@ -6763,7 +6765,7 @@ function renderUseStats(rows) {
   const sorted = c => Object.entries(c).sort((a, b) => b[1] - a[1]);
   const table = (title, ent, nameOf, tierOf) => `<div><h4>${title}</h4>` + ent.map(([k, v]) => { const pc = v / nb * 100;
     return `<div class="ur"><b>${tierOf(k)}${nameOf(k)}</b><div class="ub"><i style="width:${Math.min(100, pc)}%"></i></div><span>${pc.toFixed(1)}%（${v}）</span></div>`; }).join('') + '</div>';
-  el.innerHTML = `<div style="grid-column:1/-1;opacity:.8">友だちの試合 ${list.length}・Bot だけの試合（計算） ${sm.toLocaleString()}　合計 Bot のべ ${nb.toLocaleString()} 体　<span style="color:#ffd36b">● 1 秒ごとに更新中</span></div>`
+  el.innerHTML = `<div style="grid-column:1/-1;opacity:.8"><b style="color:#ffd36b">シーズン ${SEASON}</b>　友だちの試合 ${list.length}・Bot だけの試合（計算） ${sm.toLocaleString()}　合計 Bot のべ ${nb.toLocaleString()} 体　<span style="color:#ffd36b">● 1 秒ごとに更新中</span></div>`
     + `<div style="grid-column:1/-1;font-size:12px">${tierBadge('S')}環境（一番強い） ${tierBadge('A')}強い ${tierBadge('B')}ふつう ${tierBadge('C')}弱い　<span style="opacity:.7">… Bot は強いティアほどよく使う</span></div>`
     + table('Bot のキャラ使用率', sorted(lc), k => (LEG[k] && LEG[k].name) || k, k => tierBadge(legTier(k)))
     + table('Bot の武器使用率（10 秒以上持っていた）', sorted(wc), k => (WDEFS[k] && WDEFS[k].name) || k, k => tierBadge(wpnTier(k)));
